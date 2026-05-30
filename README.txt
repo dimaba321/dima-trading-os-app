@@ -23,34 +23,34 @@ CONTENTS
   • 4 GB RAM minimum (8 GB recommended)
   • 500 MB free disk space
   • Internet connection (for live prices and AI features)
-  • Windows Developer Mode MUST be enabled before installing
 
-  HOW TO ENABLE DEVELOPER MODE:
-  Settings → Privacy & Security → For Developers → Developer Mode → ON
-  (A confirmation popup will appear — click Yes)
+  No special Windows settings required. Just double-click and install.
 
 
 ────────────────────────────────────────────────────────────────────────────────
 2. INSTALLATION STEPS
 ────────────────────────────────────────────────────────────────────────────────
 
-  Step 1: Enable Windows Developer Mode (see above — REQUIRED)
+  Step 1: Double-click "Trading OS Setup X.X.X.exe"
 
-  Step 2: Double-click "Trading OS Setup 1.0.0.exe"
-
-  Step 3: If Windows SmartScreen appears:
+  Step 2: If Windows SmartScreen appears:
           → Click "More info"
           → Click "Run anyway"
-          (This warning appears because the app is not Microsoft-signed.
-           It is safe — this is normal for independent software.)
 
-  Step 4: The app installs automatically.
-          A shortcut appears on your Desktop and Start Menu.
+          This warning appears because the app is not signed by Microsoft.
+          It is completely safe — this is normal for independent software
+          that hasn't paid for a Microsoft code-signing certificate.
+
+  Step 3: The installer wizard opens.
+          Choose your installation folder (or leave the default).
+          Click Install and wait for it to finish.
+
+  Step 4: Click Finish. A shortcut appears on your Desktop and Start Menu.
 
   Step 5: Launch "Trading OS" from the Desktop shortcut.
 
   Step 6: The Setup Wizard opens on first launch.
-          Follow the 5 steps to enter your API keys.
+          Follow the 5 steps to enter your name and API keys.
 
 
 ────────────────────────────────────────────────────────────────────────────────
@@ -178,8 +178,8 @@ CONTENTS
   • The trade is automatically scored and your ELO updated
 
   CHANGING API KEYS LATER:
-  • Dashboard tab → scroll to the API Key section
-  • Enter a new key and save
+  • Dashboard tab → scroll to the API Keys section
+  • Enter a new key and save — updates immediately, no restart needed
   • Keys are stored locally on your machine only
 
 
@@ -187,12 +187,10 @@ CONTENTS
 7. TROUBLESHOOTING
 ────────────────────────────────────────────────────────────────────────────────
 
-  PROBLEM: App won't install / install fails
-  SOLUTION: Enable Windows Developer Mode first (Settings → Privacy &
-            Security → For Developers → Developer Mode: ON)
-
-  PROBLEM: "Windows protected your PC" warning
+  PROBLEM: "Windows protected your PC" warning during install
   SOLUTION: Click "More info" → "Run anyway"
+            This is a standard SmartScreen warning for unsigned apps.
+            The app is safe — it just doesn't have a Microsoft certificate.
 
   PROBLEM: Prices not loading / showing as $0.00
   SOLUTION: Check your internet connection. Prices load from Yahoo Finance
@@ -221,12 +219,12 @@ CONTENTS
 ────────────────────────────────────────────────────────────────────────────────
 
   Data location (all your trades and settings):
-    C:\Users\[YourName]\AppData\Roaming\Dima Trading OS\
+    C:\Users\[YourName]\AppData\Local\Programs\Trading OS\
 
   Your data never leaves your machine. No cloud sync, no subscription.
   All AI calls go directly to Anthropic using your own API key.
 
 ================================================================================
   Trading OS — Built for serious retail traders
-  Version 1.0.0 · 2026
+  Version 1.0.3 · 2026
 ================================================================================

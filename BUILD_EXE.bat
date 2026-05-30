@@ -77,7 +77,7 @@ if exist release\*.exe (
   echo  Personal build: release\
   echo.
 )
-echo  IMPORTANT: Enable Windows Developer Mode before installing.
-echo  Settings ^> Privacy ^& Security ^> For Developers ^> Developer Mode: ON
+echo  NOTE (builder only): Windows Developer Mode must be ON on THIS machine
+echo  to build. Customers do NOT need Developer Mode to install the .exe.
 echo.
 pause
