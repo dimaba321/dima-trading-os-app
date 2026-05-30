@@ -50,11 +50,15 @@ if (isClean && newVer !== oldVer) {
   console.log(`[0] Version bumped: ${oldVer} → ${newVer}`);
 }
 
-// ── Step 0: Install backend production dependencies ───────────────────────────
+// ── Step 0a: Generate installer wizard BMP assets ─────────────────────────────
+console.log('[0/5] Generating installer wizard graphics...');
+execSync('node scripts/generate-installer-assets.js', { cwd: ROOT, stdio: 'inherit' });
+
+// ── Step 0b: Install backend production dependencies ──────────────────────────
 // Ensures backend/node_modules has only production packages before bundling.
 const backendDir = path.join(ROOT, '..', 'backend');
 if (fs.existsSync(backendDir)) {
-  console.log('[0/4] Installing backend production dependencies...');
+  console.log('[0/5] Installing backend production dependencies...');
   execSync('npm install --production --prefer-offline', {
     cwd: backendDir, stdio: 'inherit',
   });
