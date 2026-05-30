@@ -904,8 +904,8 @@ First output this EXACT JSON (one line):
 Then NEW LINE: write a direct 2-4 sentence debrief to Dima. Be honest. Name best opportunity or biggest risk.`;
 
     try {
-      // Route through backend proxy (Node.js, no browser security issues)
-      const resp = await fetch('http://localhost:3000/api/claude', {
+      // Use streaming proxy for CEO report — shows character-by-character
+      const resp = await fetch('http://localhost:3000/api/claude-stream', {
         method:'POST',
         headers:{'Content-Type':'application/json'},
         body: JSON.stringify({
@@ -915,10 +915,25 @@ Then NEW LINE: write a direct 2-4 sentence debrief to Dima. Be honest. Name best
           messages:[{role:'user',content:ceoPrompt}],
         }),
       });
-      const d = await resp.json();
-      if (!resp.ok || d.type === 'error') throw new Error(d.error?.message || 'CEO API error');
-      const full = d.content?.[0]?.text || '';
-      setCeoStream(full); // show full report at once
+      if (!resp.ok) throw new Error('Stream error HTTP ' + resp.status);
+      const reader = resp.body.getReader();
+      const dec    = new TextDecoder();
+      let full = '';
+      while (true) {
+        const {done, value} = await reader.read();
+        if (done) break;
+        const lines = dec.decode(value).split('\n');
+        for (const line of lines) {
+          if (!line.startsWith('data:')) continue;
+          const d = line.slice(5).trim();
+          if (d==='[DONE]') break;
+          try {
+            const j = JSON.parse(d);
+            if (j.type === 'error') throw new Error(j.error);
+            if (j.type==='content_block_delta'&&j.delta?.text) { full += j.delta.text; setCeoStream(full); }
+          } catch(pe) { if (pe.message !== 'error') throw pe; }
+        }
+      }
       setAgentStatus(prev=>({...prev,ceo:'done'}));
       addLog('CEO','Report complete.');
       const report = parseJSON(full);
@@ -1259,8 +1274,28 @@ SKILLS YOU HAVE:
 
   function addPosition() {
     const { ticker, shares, entry, stop, t1, t2, pattern, rationale, notes } = form;
-    if (!ticker || !shares || !entry || !stop || !pattern) return;   // pattern is mandatory
-    const p = { id: Date.now(), ticker: ticker.toUpperCase(), shares: parseFloat(shares), entry: parseFloat(entry), stop: parseFloat(stop), t1: parseFloat(t1) || 0, t2: parseFloat(t2) || 0, pattern, rationale, notes, date: new Date().toISOString().split("T")[0] };
+    if (!ticker || !shares || !entry || !stop || !pattern) return;
+
+    const tickerUpper  = ticker.toUpperCase();
+    const positionSize = parseFloat(entry) * parseFloat(shares);
+    const MINERS       = new Set(['IREN','CIFR','MARA','CLSK','RIOT','BTBT','HUT','MSTR','COIN']);
+    const maxPct       = MINERS.has(tickerUpper) ? 0.09 : 0.15;
+    const positionPct  = positionSize / ACCOUNT;
+
+    // Warn if position exceeds sizing rules (don't block — just alert)
+    if (positionPct > maxPct) {
+      const pctDisplay   = (positionPct * 100).toFixed(1);
+      const maxDisplay   = (maxPct * 100).toFixed(0);
+      const ok = window.confirm(
+        `⚠️ POSITION SIZE WARNING\n\n` +
+        `${tickerUpper}: ${parseFloat(shares)} shares @ $${parseFloat(entry).toFixed(2)} = $${positionSize.toFixed(0)} (${pctDisplay}% of account)\n` +
+        `Your rule: Max ${maxDisplay}% per ${MINERS.has(tickerUpper) ? 'BTC miner' : 'stock'}\n\n` +
+        `This trade exceeds your sizing rules. Continue anyway?`
+      );
+      if (!ok) return;
+    }
+
+    const p = { id: Date.now(), ticker: tickerUpper, shares: parseFloat(shares), entry: parseFloat(entry), stop: parseFloat(stop), t1: parseFloat(t1) || 0, t2: parseFloat(t2) || 0, pattern, rationale, notes, date: new Date().toISOString().split("T")[0] };
     setPositions(prev => [...prev, p]);
     setForm({ ticker: "", shares: "", entry: "", stop: "", t1: "", t2: "", pattern: "", rationale: "", notes: "" });
     generateTweetPreview('OPEN',{ticker:p.ticker,entry:p.entry,stop:p.stop,target:p.t1||null});
@@ -2295,6 +2330,15 @@ SKILLS YOU HAVE:
         </div>
 
         {/* Input */}
+        {/* Cost estimator */}
+        {chatInput.trim() && !chatLoading && (()=>{
+          const histTokens = chatMessages.reduce((s,m) => s + Math.ceil((m.content?.length||0)/4), 0);
+          const inputTokens = Math.ceil(chatInput.length/4) + histTokens + 800; // +800 for system prompt
+          const estCost = ((inputTokens/1000000)*3 + (600/1000000)*15).toFixed(4);
+          return <div style={{fontSize:9,color:txt3,marginBottom:4,textAlign:"right"}}>
+            ~${estCost} · ~{inputTokens.toLocaleString()} tokens input
+          </div>;
+        })()}
         <div style={{display:"flex",gap:8,flexShrink:0}}>
           <textarea
             value={chatInput} onChange={e=>setChatInput(e.target.value)}
