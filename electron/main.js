@@ -159,6 +159,17 @@ function closeSplash() {
   }
 }
 
+// ── First-run check ───────────────────────────────────────────────────────────
+function isFirstRun() {
+  const settingsFile = path.join(app.getPath('userData'), 'setup.json');
+  return !fs.existsSync(settingsFile);
+}
+
+function markSetupComplete(data = {}) {
+  const settingsFile = path.join(app.getPath('userData'), 'setup.json');
+  fs.writeFileSync(settingsFile, JSON.stringify({ ...data, setupDate: new Date().toISOString() }), 'utf8');
+}
+
 // ── Main window ───────────────────────────────────────────────────────────────
 function createWindow() {
   mainWindow = new BrowserWindow({
@@ -194,11 +205,50 @@ function createWindow() {
 
 // ── App lifecycle ─────────────────────────────────────────────────────────────
 app.whenReady().then(async () => {
-  createSplash();              // Show splash immediately
+  createSplash();
   if (!isDev) startFileServer();
   startBackend();
   await waitForBackend();
-  createWindow();              // Load app in background, splash closes on ready
+
+  // First-run setup on clean install (no personal data mode)
+  if (isFirstRun() && !isDev) {
+    closeSplash();
+    const setupWin = new BrowserWindow({
+      width: 500, height: 520, resizable: false, frame: true,
+      backgroundColor: '#0d1117',
+      icon: path.join(__dirname, '..', 'public', 'dima_trading_os_icon_256.png'),
+      webPreferences: { contextIsolation: true },
+    });
+    setupWin.setMenuBarVisibility(false);
+    setupWin.loadFile(path.join(__dirname, 'firstrun.html'));
+
+    // Poll for setup completion via URL hash
+    const checkSetup = setInterval(async () => {
+      try {
+        const url = setupWin.webContents.getURL();
+        const hash = decodeURIComponent(url.split('#')[1] || '');
+        if (!hash) return;
+        const data = JSON.parse(hash);
+        if (data.setup) {
+          clearInterval(checkSetup);
+          markSetupComplete(data);
+
+          // Save initial config to backend
+          if (data.apikey) {
+            await fetch(`http://localhost:${BACKEND_PORT}/api/trades/settings/api_key_hint`, {
+              method:'PUT', headers:{'Content-Type':'application/json'},
+              body: JSON.stringify({ value: data.apikey }),
+            }).catch(() => {});
+          }
+
+          setupWin.close();
+          createWindow();
+        }
+      } catch {}
+    }, 500);
+  } else {
+    createWindow();
+  }
 
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) createWindow();

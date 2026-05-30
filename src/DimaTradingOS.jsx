@@ -358,6 +358,8 @@ export default function DimaTradingOS() {
   // ELO — close position quality flags
   const [cfExec, setCfExec] = useState({ followedPlan:false, perfectEntry:false, cleanExit:false });
   const [cfEmotional, setCfEmotional] = useState(false);
+  // Skill journal
+  const [skillJournal, setSkillJournal] = useState('');
   // API key test
   const [keyTestResult, setKeyTestResult] = useState(null);
   const [keyTesting,    setKeyTesting]    = useState(false);
@@ -469,7 +471,7 @@ export default function DimaTradingOS() {
         // Sync to portfolio.service.js so Position Monitor agent reads correct data
         fetch('http://localhost:3000/api/portfolio/sync', {
           method:'POST', headers:{'Content-Type':'application/json'},
-          body: JSON.stringify({ positions: data }),
+          body: JSON.stringify({ positions: data, prices }),
         }).catch(() => {});
       } else if (data && data.length === 0) {
         // Backend is empty — seed it with current state
@@ -487,6 +489,15 @@ export default function DimaTradingOS() {
       }
     }).catch(() => {});
   }, []); // runs once on mount
+
+  // Load skill journal from backend on startup
+  useEffect(() => {
+    fetch('http://localhost:3000/api/skill-journal')
+      .then(r => r.json())
+      .then(d => { if (d.content) setSkillJournal(d.content); })
+      .catch(() => {});
+  }, []);
+
   // Save to localStorage (fast, local cache)
   useEffect(() => { try { localStorage.setItem("dima_p5", JSON.stringify(positions)); } catch {} }, [positions]);
   useEffect(() => { try { localStorage.setItem("dima_c5", JSON.stringify(closed)); } catch {} }, [closed]);
@@ -537,6 +548,11 @@ export default function DimaTradingOS() {
     if (Object.keys(data).length) {
       setPrices(data);
       setLastUpdated(new Date());
+      // Keep backend heat calculator up-to-date with fresh prices
+      fetch('http://localhost:3000/api/portfolio/sync', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ positions, prices: data }),
+      }).catch(() => {});
     }
     setPriceLoading(false);
   }, [positions]);
@@ -1195,7 +1211,8 @@ SKILLS YOU HAVE:
 - Smart money sector scanner
 - Stock scout (finding 150 SMA setups)
 - Psychology check (emotional trade detection)
-- Trading journal review`;
+- Trading journal review
+${skillJournal ? `\nSKILL JOURNAL (Dima's own recorded lessons — reference these when relevant):\n${skillJournal.slice(0, 2000)}` : ''}`;
   }
 
   // Quick-send to chat — used by Quick Actions buttons (auto-sends without user pressing Enter)
@@ -1429,13 +1446,15 @@ SKILLS YOU HAVE:
   });
 
   const histTickers = ["ALL", ...new Set(closed.map(t => t.ticker))];
-  // History: newest first. Use seq (DB order) reversed, fallback to date sort
+  // History: NEWEST ON TOP, OLDEST AT BOTTOM
+  // Primary: date DESC (May 29 before April 26)
+  // Secondary: seq DESC within same date (last trade of day on top)
   const filteredHist = [...closed]
     .sort((a, b) => {
-      // If seq is available (from SQLite), use it reversed for newest-first
-      if (a.seq != null && b.seq != null) return b.seq - a.seq;
-      // Fallback: sort by date DESC
-      return (b.date||'') > (a.date||'') ? 1 : -1;
+      const da = a.date || '', db = b.date || '';
+      if (db !== da) return db > da ? 1 : -1;        // date DESC — newer date first
+      if (a.seq != null && b.seq != null) return b.seq - a.seq; // seq DESC within same date
+      return 0;
     })
     .filter(t => {
     if (histTicker !== "ALL" && t.ticker !== histTicker) return false;
