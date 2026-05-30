@@ -51,7 +51,6 @@
       "oneClick": false,
       "perMachine": false,
       "allowToChangeInstallationDirectory": true,
-      "allowElevation": true,
       "installerIcon": "public/app.ico",
       "uninstallerIcon": "public/app.ico",
       "installerSidebar": "build-resources/installer-sidebar.bmp",
