@@ -358,6 +358,9 @@ export default function DimaTradingOS() {
   // ELO — close position quality flags
   const [cfExec, setCfExec] = useState({ followedPlan:false, perfectEntry:false, cleanExit:false });
   const [cfEmotional, setCfEmotional] = useState(false);
+  // API key test
+  const [keyTestResult, setKeyTestResult] = useState(null);
+  const [keyTesting,    setKeyTesting]    = useState(false);
   const [agentStats, setAgentStats] = useState(null);
   const [agentStatsLoading, setAgentStatsLoading] = useState(false);
   const [journalMonth, setJournalMonth] = useState(() => {
@@ -424,6 +427,9 @@ export default function DimaTradingOS() {
   const [totalDeposits, setTotalDeposits] = useState(()=>{try{return parseFloat(localStorage.getItem("dima_deposits")||"0");}catch{return 0;}});
   const [showDeposit,   setShowDeposit]   = useState(false);
   const [depositNIS,    setDepositNIS]    = useState("2000");
+  // Trading Diary
+  const [diaryLoading, setDiaryLoading]   = useState(false);
+  const [diaryResult,  setDiaryResult]    = useState(null); // {success, filePath, error}
 
   const wlInputRef = React.useRef(null);
   const eqRef = useRef(null), ptRef = useRef(null);
@@ -611,17 +617,13 @@ export default function DimaTradingOS() {
     setAgentLog([...agentLogRef.current]);
   }
   async function callAgent(prompt, maxTokens) {
-    const resp = await fetch('https://api.anthropic.com/v1/messages', {
+    const resp = await fetch('http://localhost:3000/api/claude', {
       method:'POST',
-      headers:{
-        'Content-Type':'application/json',
-        'x-api-key':apiKey,
-        'anthropic-version':'2023-06-01',
-        'anthropic-dangerous-direct-browser-access':'true',
-      },
+      headers:{'Content-Type':'application/json'},
       body: JSON.stringify({
+        apiKey,
         model:'claude-sonnet-4-6',
-        max_tokens: maxTokens||1200,
+        maxTokens: maxTokens||1200,
         messages:[{role:'user', content:prompt}],
       }),
     });
@@ -862,39 +864,21 @@ First output this EXACT JSON (one line):
 Then NEW LINE: write a direct 2-4 sentence debrief to Dima. Be honest. Name best opportunity or biggest risk.`;
 
     try {
-      const resp = await fetch('https://api.anthropic.com/v1/messages', {
+      // Route through backend proxy (Node.js, no browser security issues)
+      const resp = await fetch('http://localhost:3000/api/claude', {
         method:'POST',
-        headers:{
-          'Content-Type':'application/json',
-          'x-api-key':apiKey,
-          'anthropic-version':'2023-06-01',
-          'anthropic-dangerous-direct-browser-access':'true',
-          'anthropic-beta':'messages-2023-12-15',
-        },
+        headers:{'Content-Type':'application/json'},
         body: JSON.stringify({
+          apiKey,
           model:'claude-sonnet-4-6',
-          max_tokens:1500,
-          stream:true,
+          maxTokens:1500,
           messages:[{role:'user',content:ceoPrompt}],
         }),
       });
-      const reader = resp.body.getReader();
-      const dec    = new TextDecoder();
-      let full = '';
-      while (true) {
-        const {done,value} = await reader.read();
-        if (done) break;
-        const lines = dec.decode(value).split('\n');
-        for (const line of lines) {
-          if (!line.startsWith('data:')) continue;
-          const d = line.slice(5).trim();
-          if (d==='[DONE]') break;
-          try {
-            const j = JSON.parse(d);
-            if (j.type==='content_block_delta'&&j.delta?.text) { full += j.delta.text; setCeoStream(full); }
-          } catch {}
-        }
-      }
+      const d = await resp.json();
+      if (!resp.ok || d.type === 'error') throw new Error(d.error?.message || 'CEO API error');
+      const full = d.content?.[0]?.text || '';
+      setCeoStream(full); // show full report at once
       setAgentStatus(prev=>({...prev,ceo:'done'}));
       addLog('CEO','Report complete.');
       const report = parseJSON(full);
@@ -978,7 +962,76 @@ Then NEW LINE: write a direct 2-4 sentence debrief to Dima. Be honest. Name best
     const prompt=buildJournalPrompt(mKey);
     logSkill(prompt,'Journal: '+mKey);
   }
+
+  // ── Trading Diary (.docx) ─────────────────────────────────────────────────
+  async function generateTradingDiary(month) {
+    if (!window.electronAPI?.generateDiary) {
+      alert('Trading Diary requires the Electron app — not available in browser mode.');
+      return;
+    }
+    setDiaryLoading(true);
+    setDiaryResult(null);
+    try {
+      const result = await window.electronAPI.generateDiary({
+        positions,
+        closed,
+        stats,
+        eloRank,
+        currentElo,
+        calibration,
+        month:  month || journalMonth,
+        apiKey,
+        // Pass the actual chat conversation from the Chat tab
+        // Filter to meaningful exchanges (skip single-word messages)
+        chatHistory: chatMessages
+          .filter(m => {
+            // Only messages with real content
+            if (!m.content || m.content.length < 20) return false;
+            // If message has a timestamp, filter to the selected month
+            if (m.ts) {
+              const msgMonth = m.ts.slice(0, 7); // YYYY-MM
+              const targetMonth = month || journalMonth;
+              return msgMonth === targetMonth;
+            }
+            // No timestamp (old messages) — include them
+            return true;
+          })
+          .slice(-40)
+          .map(m => ({
+            role: m.role,
+            content: m.content.slice(0, 800),
+            // Include timestamp so diary knows when each message was sent
+            ts: m.ts ? new Date(m.ts).toLocaleString('en-GB', {
+              timeZone: 'Asia/Jerusalem',
+              day:'2-digit', month:'short', hour:'2-digit', minute:'2-digit'
+            }) : null,
+          })),
+      });
+      setDiaryResult(result);
+    } catch(e) {
+      setDiaryResult({ success: false, error: e.message });
+    } finally {
+      setDiaryLoading(false);
+      // Auto-dismiss success after 4s
+      setTimeout(() => setDiaryResult(null), 4000);
+    }
+  }
   function sendToChat(text) { sp(text); }
+
+  async function testApiKey() {
+    setKeyTesting(true); setKeyTestResult(null);
+    try {
+      const r = await fetch('http://localhost:3000/api/claude', {
+        method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({ apiKey, model:'claude-sonnet-4-6', maxTokens:5, messages:[{role:'user',content:'hi'}] })
+      });
+      const d = await r.json();
+      if (d.type === 'error') setKeyTestResult({ok:false, msg: d.error?.message || 'Invalid key'});
+      else if (d.content?.[0]?.text) setKeyTestResult({ok:true, msg:'✓ Key is valid and working'});
+      else setKeyTestResult({ok:false, msg:'Unexpected: '+JSON.stringify(d).slice(0,80)});
+    } catch(e) { setKeyTestResult({ok:false, msg:e.message}); }
+    setKeyTesting(false);
+  }
 
   // ── Calibration ──────────────────────────────────────────────────────────
   function runCalibration() {
@@ -1008,9 +1061,36 @@ Then NEW LINE: write a direct 2-4 sentence debrief to Dima. Be honest. Name best
   }
 
   // ── Claude AI Chat ──────────────────────────────────────────────────────────
-  const DIMA_SYSTEM = `You are Dima's personal trading assistant — brutally honest, stone cold, no softening.
+  // System prompt is a FUNCTION — computed fresh each call so date/time is always current
+  function buildSystemPrompt() {
+    const now = new Date();
+    // Use 'en-GB' — universally supported in all Chromium builds (unlike 'en-IL')
+    const ilTime = new Intl.DateTimeFormat('en-GB', {
+      timeZone: 'Asia/Jerusalem', weekday:'long', year:'numeric',
+      month:'long', day:'numeric', hour:'2-digit', minute:'2-digit', hour12:false
+    }).format(now);
+    const nyTime = new Intl.DateTimeFormat('en-GB', {
+      timeZone: 'America/New_York', weekday:'long', hour:'2-digit', minute:'2-digit', hour12:false
+    }).format(now);
+    const nyHour = parseInt(new Intl.DateTimeFormat('en-GB',{timeZone:'America/New_York',hour:'2-digit',hour12:false}).format(now));
+    const nyDay  = new Intl.DateTimeFormat('en-GB',{timeZone:'America/New_York',weekday:'short'}).format(now);
+    const isWeekend   = ['Sat','Sun'].includes(nyDay);
+    const isMarketOpen = !isWeekend && nyHour >= 9 && nyHour < 16;
+    const marketStatus = isWeekend ? 'CLOSED (weekend)' : isMarketOpen ? '🟢 OPEN' : '🔴 CLOSED';
 
-WHO IS DIMA: Israeli trader, 31, Netanya. Construction PM. $11,000 swing account + ₪2,000/month. Goal: $1M in 15 years at 30% annual. Top 10-15% retail.
+    // Build live position summary from current state
+    const positionsSummary = positions.length > 0
+      ? positions.map(p => `- ${p.ticker}: ${p.shares}sh @$${p.entry}, stop $${p.stop||'—'}, T1 $${p.t1||'—'}${p.pattern ? ` [${p.pattern}]` : ''}`).join('\n')
+      : '- No open positions';
+
+    return `You are Dima's personal trading assistant — brutally honest, stone cold, no softening.
+
+CURRENT DATE & TIME:
+🇮🇱 Israel: ${ilTime}
+🇺🇸 New York: ${nyTime}
+📈 US Market: ${marketStatus}
+
+WHO IS DIMA: Israeli trader, 31, Netanya. Construction PM. $${(ACCOUNT + totalDeposits).toLocaleString()} account + ₪2,000/month contributions. Goal: $1M in 15 years at 30% annual. Top 10-15% retail.
 
 THE 150 SMA SYSTEM (ONLY system he trades):
 1. 150 SMA must be RISING — declining SMA = NO entry, period
@@ -1022,24 +1102,24 @@ STOPS: Just below 150 SMA or trendline. NEVER move wider.
 EXITS: Before resistance, NEVER hold through earnings.
 SIZING: Max 10-15% per stock. Max 5-9% for BTC miners (IREN,CIFR,MARA,MSTR,COIN).
 
-CURRENT OPEN POSITIONS:
-- IGV: 20sh @$90.71, stop $88, T1 $95.79 (Software ETF)
-- NOW: 15sh @$107.54, stop $95, T1 $125 (Earnings recovery)
-- NEE: 15sh @$89.97, stop $87.81, T1 $97 (150 SMA bounce)
-- GEN: 65sh @$24.59, stop $22.80, T1 $28 (150 SMA breakout)
-- TSLA: 4sh @$408.65, stop $385, T1 $433 (Confluence)
-- CRWV: 15sh @$108.15, stop $102, T1 $122+ (Support retest)
-- IREN: 25sh @$48.86, stop $47.75, T1 $53 (BTC miner)
+CURRENT OPEN POSITIONS (live — ${positions.length} open):
+${positionsSummary}
 
-STATS (May 2026): 19 closed swing trades | 63.2% WR | +$603.65 net | PF ~1.70 | Rank: Silver II ⚔️
+LIVE TRADING STATS (from ${closed.length} closed trades):
+- Net P&L: ${stats.net >= 0 ? '+' : ''}$${stats.net.toFixed(2)}
+- Win Rate: ${stats.wr.toFixed(1)}% (${stats.wins}W / ${stats.losses}L)
+- Profit Factor: ${stats.pf.toFixed(2)}
+- Avg Win: +$${stats.aw.toFixed(2)} | Avg Loss: -$${stats.al.toFixed(2)}
+- ELO Rank: ${eloRank?.name || 'Unknown'} (${currentElo} ELO)
+- Emotional trades: ${closed.filter(t => ['Emotional Buy','FOMO Entry','Averaging Down','No Clear Reason'].includes(t.pattern) || t.emotional).length} / ${closed.length}
 
 PSYCHOLOGY — NON-NEGOTIABLE:
 - Earnings = gamble. He doesn't gamble.
-- Excitement = danger signal
-- Cash is a valid position
+- Excitement = danger signal. Calm = professional.
+- Cash is a valid position when no setup exists
 - Day trading: DISCONTINUED after SOXL -$300 while driving
 - Never trade while distracted/driving
-- Hope is not a stop loss
+- Hope is not a stop loss. When you're hoping, exit.
 
 BEHAVIORAL RULE — THIS IS CRITICAL:
 Be brutally honest. Use strong language when earned. If he's about to make a stupid trade with real money: "Are you out of your fucking mind?" is appropriate. No softening. No "interesting approach." Facts + verdict + alternative. Always.
@@ -1051,42 +1131,53 @@ SKILLS YOU HAVE:
 - Position sizing calculations
 - Risk management review
 - Market hours check (Israel UTC+3 summer, NY market 09:30-16:00)
-- What's Hot scan (X/Twitter, Reddit, earnings)
+- What's Hot scan (Reddit, news momentum)
 - Smart money sector scanner
 - Stock scout (finding 150 SMA setups)
 - Psychology check (emotional trade detection)
 - Trading journal review`;
+  }
 
   async function sendChatMessage() {
     const text = chatInput.trim();
     if (!text || chatLoading) return;
     if (!apiKey) { alert('Set your API key on the Dashboard tab first'); return; }
-    const newMsg = { role: 'user', content: text };
+    const now = new Date().toISOString();
+    const newMsg = { role: 'user', content: text, ts: now };
     const history = [...chatMessages, newMsg];
     setChatMessages(history);
     setChatInput('');
     setChatLoading(true);
     try {
-      const resp = await fetch('https://api.anthropic.com/v1/messages', {
+      let systemPrompt;
+      try { systemPrompt = buildSystemPrompt(); }
+      catch(pe) { systemPrompt = 'You are Dima\'s trading assistant. Be honest and direct.'; console.error('[chat] buildSystemPrompt error:', pe); }
+
+      // Route through local backend — avoids Electron browser security restrictions
+      const resp = await fetch('http://localhost:3000/api/claude', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-api-key': apiKey,
-          'anthropic-version': '2023-06-01',
-          'anthropic-dangerous-direct-browser-access': 'true',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          model: 'claude-sonnet-4-6',
-          max_tokens: 2000,
-          system: DIMA_SYSTEM,
-          messages: history.map(m => ({ role: m.role, content: m.content })),
+          apiKey,
+          model:     'claude-sonnet-4-6',
+          maxTokens: 2000,
+          system:    systemPrompt,
+          messages:  history.map(m => ({ role: m.role, content: m.content })),
         }),
       });
+
       const d = await resp.json();
-      const reply = d.content?.[0]?.text || 'Error: no response from Claude';
-      setChatMessages(prev => [...prev, { role: 'assistant', content: reply }]);
+
+      // Surface the real Claude error instead of hiding it
+      if (!resp.ok || d.type === 'error') {
+        const errMsg = d.error?.message || `HTTP ${resp.status}: ${JSON.stringify(d)}`;
+        throw new Error(errMsg);
+      }
+
+      const reply = d.content?.[0]?.text || '(empty response)';
+      setChatMessages(prev => [...prev, { role: 'assistant', content: reply, ts: new Date().toISOString() }]);
     } catch(e) {
-      setChatMessages(prev => [...prev, { role: 'assistant', content: '❌ Error: ' + e.message }]);
+      setChatMessages(prev => [...prev, { role: 'assistant', content: '❌ Error: ' + e.message, ts: new Date().toISOString() }]);
     }
     setChatLoading(false);
     setTimeout(() => chatEndRef.current?.scrollIntoView({ behavior: 'smooth' }), 100);
@@ -1434,7 +1525,8 @@ SKILLS YOU HAVE:
                   <button onClick={()=>setTab('pos')} style={{...C.btn("green"),marginBottom:6,fontSize:11,fontWeight:700}}>+ Add / Close Position</button>
                   <button onClick={()=>setTab('stats')} style={{...C.btn(""),marginBottom:6,fontSize:11}}>📊 Statistics & Rank</button>
                   <button onClick={()=>{setTab('chat');setTimeout(()=>{setChatInput("What's hot in the market today? Top 3 momentum stocks with catalyst.");},150);}} style={{...C.btn(""),marginBottom:6,fontSize:11}}>🔥 What's hot ↗</button>
-                  <button onClick={()=>{setTab('chat');setTimeout(()=>{setChatInput("Give me my morning briefing. Analyze my open positions vs current market conditions and BTC price. What do I need to watch today?");},150);}} style={{...C.btn(""),marginBottom:0,fontSize:11}}>🌅 Morning briefing ↗</button>
+                  <button onClick={()=>{setTab('chat');setTimeout(()=>{setChatInput("Give me my morning briefing. Analyze my open positions vs current market conditions and BTC price. What do I need to watch today?");},150);}} style={{...C.btn(""),marginBottom:6,fontSize:11}}>🌅 Morning briefing ↗</button>
+                  <button onClick={()=>generateTradingDiary(journalMonth)} disabled={diaryLoading} style={{...C.btn("green"),marginBottom:0,fontSize:11,fontWeight:700,opacity:diaryLoading?0.6:1}}>📄 {diaryLoading?'Generating…':'Trading Diary (.docx)'}</button>
                 </div>
                 {/* API Key compact */}
                 <div style={C.card}>
@@ -1446,8 +1538,17 @@ SKILLS YOU HAVE:
                       <button onClick={()=>{const k=keyInput.trim();if(k){setApiKey(k);try{localStorage.setItem("dima_key",k);}catch{}setKeyInput("");}}} style={{...C.btn("green"),padding:"4px",marginBottom:0,fontSize:10}}>Save</button>
                     </>
                   ) : (
-                    <><div style={{fontSize:9,color:grn,marginBottom:5}}>✓ Active (···{apiKey.slice(-6)})</div>
-                      <button onClick={()=>{setApiKey("");try{localStorage.removeItem("dima_key");}catch{}}} style={{background:"none",border:`1px solid rgba(248,81,73,0.25)`,color:red,borderRadius:4,padding:"3px 8px",cursor:"pointer",fontSize:9,fontFamily:"inherit",width:"100%"}}>Clear</button>
+                    <>
+                      <div style={{fontSize:9,color:grn,marginBottom:6}}>✓ Active (···{apiKey.slice(-6)})</div>
+                      <button onClick={testApiKey} disabled={keyTesting}
+                        style={{background:"none",border:`1px solid rgba(63,185,80,0.3)`,color:grn,borderRadius:4,padding:"4px 8px",cursor:"pointer",fontSize:10,fontFamily:"inherit",width:"100%",marginBottom:4,fontWeight:600}}>
+                        {keyTesting ? '⏳ Testing…' : '⚡ Test Key'}
+                      </button>
+                      {keyTestResult && <div style={{fontSize:9,color:keyTestResult.ok?grn:red,marginBottom:5,lineHeight:1.4}}>{keyTestResult.msg}</div>}
+                      <button onClick={()=>{setApiKey("");try{localStorage.removeItem("dima_key");}catch{}setKeyTestResult(null);}}
+                        style={{background:"none",border:`1px solid rgba(248,81,73,0.25)`,color:red,borderRadius:4,padding:"3px 8px",cursor:"pointer",fontSize:9,fontFamily:"inherit",width:"100%"}}>
+                        Clear Key
+                      </button>
                     </>
                   )}
                 </div>
@@ -1519,13 +1620,23 @@ SKILLS YOU HAVE:
               <div style={{ fontSize: 15, fontWeight: 800, color: eloRank.color, letterSpacing:"0.05em" }}>{eloRank.name.toUpperCase()}</div>
               <div style={{ fontSize: 20, fontWeight: 700, color: eloRank.color, margin:"2px 0" }}>{currentElo.toLocaleString()} <span style={{fontSize:10,fontWeight:400,color:txt3}}>ELO</span></div>
               <div style={{ fontSize: 9, color: txt3 }}>{eloRank.desc}</div>
-              {ri < RANKS.length - 1 && <div style={{ marginTop: 8 }}>
-                <div style={{ fontSize: 9, color: txt3, marginBottom:4 }}>
-                  Next: <img src={nextR.img} alt={nextR.name} style={{width:14,height:14,objectFit:"contain",verticalAlign:"middle",marginRight:3}}/>{nextR.name}
-                </div>
-                <div style={C.pb}><div style={{ height: "100%", borderRadius: 2, background: rank.color, width: prog.toFixed(0) + "%" }} /></div>
-                <div style={{ fontSize: 9, color: txt3, marginTop: 3 }}>PF {stats.pf.toFixed(2)} → {nextR.req.pf} | WR {stats.wr.toFixed(0)}% → {nextR.req.wr}%</div>
-              </div>}
+              {(()=>{
+                // Use ELO bands — not old PF/WR system
+                const nextEloRank = ELO_BANDS.find(b => b.min > currentElo);
+                if (!nextEloRank) return <div style={{fontSize:9,color:eloRank.color,marginTop:6}}>MAX RANK</div>;
+                const prevMin = eloRank.min;
+                const span = nextEloRank.min - prevMin;
+                const p2 = Math.max(0, Math.min(100, ((currentElo - prevMin) / span) * 100));
+                return <div style={{ marginTop:8 }}>
+                  <div style={{display:"flex",alignItems:"center",justifyContent:"center",gap:4,fontSize:9,color:txt3,marginBottom:4}}>
+                    Next:
+                    <img src={nextEloRank.img} alt={nextEloRank.name} style={{width:14,height:14,objectFit:"contain"}}/>
+                    <span style={{color:nextEloRank.color,fontWeight:600}}>{nextEloRank.name}</span>
+                  </div>
+                  <div style={C.pb}><div style={{ height:"100%", borderRadius:2, background:eloRank.color, width:p2.toFixed(0)+"%", transition:"width 0.5s" }}/></div>
+                  <div style={{ fontSize:9, color:txt3, marginTop:3 }}>{eloToNext?.toLocaleString()} pts needed</div>
+                </div>;
+              })()}
             </div>
             {/* Quick Actions moved to Market Sentiment sidebar above */}
             {skillLog.length > 0 && <div style={C.card}>
@@ -1760,15 +1871,16 @@ SKILLS YOU HAVE:
         <div style={C.g2}>
           <div>
             {/* ── CALIBRATION + ELO RANK CARD ── */}
-            <div style={{...C.rcard(eloRank.color), display:"flex", flexDirection:"column", alignItems:"center"}}>
+            <div style={{...C.rcard(eloRank.color), display:"flex", flexDirection:"column", alignItems:"center", padding:"28px 24px"}}>
               <img src={eloRank.img} alt={eloRank.name}
-                   style={{width:100,height:100,objectFit:"contain",marginBottom:8,
-                           filter:`drop-shadow(0 0 18px ${eloRank.color}aa)`}}/>
-              <div style={{fontSize:34,fontWeight:800,color:eloRank.color,fontVariantNumeric:"tabular-nums"}}>
+                   style={{width:140,height:140,objectFit:"contain",marginBottom:14,
+                           filter:`drop-shadow(0 0 28px ${eloRank.color}cc) drop-shadow(0 0 10px ${eloRank.color}66)`}}/>
+              <div style={{fontSize:52,fontWeight:900,color:eloRank.color,fontVariantNumeric:"tabular-nums",lineHeight:1,marginBottom:4}}>
                 {currentElo.toLocaleString()}
-                <span style={{fontSize:12,fontWeight:400,color:txt3,marginLeft:4}}>ELO</span>
+                <span style={{fontSize:16,fontWeight:400,color:txt3,marginLeft:6}}>ELO</span>
               </div>
-              <div style={{fontSize:15,fontWeight:700,color:eloRank.color,letterSpacing:"0.1em"}}>{eloRank.name.toUpperCase()}</div>
+              <div style={{fontSize:22,fontWeight:800,color:eloRank.color,letterSpacing:"0.15em",marginBottom:4}}>{eloRank.name.toUpperCase()}</div>
+              <div style={{fontSize:12,color:txt2,marginBottom:8}}>{eloRank.desc}</div>
 
               {/* Calibration phase indicator */}
               {!calibration ? (
@@ -1780,10 +1892,10 @@ SKILLS YOU HAVE:
               ) : (
                 <div style={{marginTop:10,width:"100%"}}>
                   {/* Calibration scores breakdown */}
-                  <div style={{background:bg3,borderRadius:6,padding:"8px 10px",marginBottom:8}}>
-                    <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:6}}>
-                      <span style={{fontSize:8,fontWeight:700,color:txt3,textTransform:"uppercase",letterSpacing:"0.1em"}}>Calibration Score</span>
-                      <span style={{fontSize:11,fontWeight:700,color:eloRank.color}}>{calibration.finalScore}/100</span>
+                  <div style={{background:bg3,borderRadius:8,padding:"14px 16px",marginBottom:10}}>
+                    <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10}}>
+                      <span style={{fontSize:11,fontWeight:700,color:txt2,textTransform:"uppercase",letterSpacing:"0.1em"}}>Calibration Score</span>
+                      <span style={{fontSize:22,fontWeight:800,color:eloRank.color}}>{calibration.finalScore}<span style={{fontSize:13,color:txt3}}>/100</span></span>
                     </div>
                     {[
                       {label:"Performance",  val:calibration.performance,  w:40, col:calibration.performance>=70?grn:calibration.performance>=50?amb:red},
@@ -1791,18 +1903,18 @@ SKILLS YOU HAVE:
                       {label:"Consistency",  val:calibration.consistency,  w:20, col:calibration.consistency>=70?grn:calibration.consistency>=50?amb:red},
                       {label:"Drawdown",     val:calibration.drawdown,     w:15, col:calibration.drawdown>=70?grn:calibration.drawdown>=50?amb:red},
                     ].map(s=>(
-                      <div key={s.label} style={{marginBottom:5}}>
-                        <div style={{display:"flex",justifyContent:"space-between",marginBottom:2}}>
-                          <span style={{fontSize:9,color:txt3}}>{s.label} <span style={{color:txt3,fontSize:8}}>×{s.w}%</span></span>
-                          <span style={{fontSize:9,fontWeight:700,color:s.col}}>{s.val}</span>
+                      <div key={s.label} style={{marginBottom:8}}>
+                        <div style={{display:"flex",justifyContent:"space-between",marginBottom:3}}>
+                          <span style={{fontSize:11,color:txt2,fontWeight:500}}>{s.label} <span style={{color:txt3,fontSize:9}}>×{s.w}%</span></span>
+                          <span style={{fontSize:13,fontWeight:700,color:s.col}}>{s.val}</span>
                         </div>
-                        <div style={{height:3,background:bdr,borderRadius:2}}>
-                          <div style={{height:"100%",width:s.val+"%",background:s.col,borderRadius:2,transition:"width 0.5s"}}/>
+                        <div style={{height:6,background:bdr,borderRadius:3}}>
+                          <div style={{height:"100%",width:s.val+"%",background:s.col,borderRadius:3,transition:"width 0.5s"}}/>
                         </div>
                       </div>
                     ))}
-                    <div style={{marginTop:6,display:"flex",justifyContent:"space-between",fontSize:9,color:txt3}}>
-                      <span>Started at: {calibration.startingElo.toLocaleString()} ELO</span>
+                    <div style={{marginTop:10,display:"flex",justifyContent:"space-between",fontSize:11,color:txt3}}>
+                      <span>Started at: <strong style={{color:txt}}>{calibration.startingElo.toLocaleString()} ELO</strong></span>
                       <span style={{color:getConfidence(calibration.tradesAnalyzed)==='Medium'?amb:getConfidence(calibration.tradesAnalyzed)==='High'?grn:txt3}}>
                         {calibration.confidence} confidence · {calibration.tradesAnalyzed} trades
                       </span>
@@ -1821,29 +1933,36 @@ SKILLS YOU HAVE:
                     const prevMin = eloRank.min;
                     const span = nextB.min - prevMin;
                     const p2 = Math.max(0,Math.min(100,((currentElo-prevMin)/span)*100));
-                    return <div style={{marginBottom:8}}>
-                      <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",fontSize:9,color:txt3,marginBottom:4}}>
-                        <div style={{display:"flex",alignItems:"center",gap:4}}>
-                          <img src={nextB.img} alt={nextB.name} style={{width:14,height:14,objectFit:"contain"}}/>
-                          {nextB.name}
+                    return <div style={{marginBottom:10}}>
+                      <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",fontSize:12,color:txt2,marginBottom:6}}>
+                        <div style={{display:"flex",alignItems:"center",gap:6}}>
+                          <img src={nextB.img} alt={nextB.name} style={{width:22,height:22,objectFit:"contain"}}/>
+                          <span>Next: <strong style={{color:nextB.color}}>{nextB.name}</strong></span>
                         </div>
-                        <span>{eloToNext} pts needed</span>
+                        <span style={{color:txt3,fontSize:11}}>{eloToNext?.toLocaleString()} pts needed</span>
                       </div>
-                      <div style={C.pb}><div style={{height:"100%",borderRadius:2,background:eloRank.color,width:p2.toFixed(0)+"%",transition:"width 0.5s"}}/></div>
+                      <div style={{height:8,background:bdr,borderRadius:4}}>
+                        <div style={{height:"100%",borderRadius:4,background:eloRank.color,width:p2.toFixed(0)+"%",transition:"width 0.5s"}}/>
+                      </div>
+                      <div style={{display:"flex",justifyContent:"space-between",fontSize:10,color:txt3,marginTop:4}}>
+                        <span>{currentElo.toLocaleString()}</span>
+                        <span>{p2.toFixed(0)}%</span>
+                        <span>{nextB.min.toLocaleString()}</span>
+                      </div>
                     </div>;
                   })()}
 
                   {/* Promotion filter */}
-                  <div style={{background:eloPromotion.eligible?"rgba(63,185,80,0.06)":"rgba(210,153,34,0.06)",border:`1px solid ${eloPromotion.eligible?"rgba(63,185,80,0.2)":"rgba(210,153,34,0.2)"}`,borderRadius:6,padding:"6px 10px",marginBottom:8}}>
-                    <div style={{fontSize:9,fontWeight:700,color:eloPromotion.eligible?grn:amb}}>
-                      {eloPromotion.eligible ? "✅ Promotion eligible" : "⚠️ " + eloPromotion.reason}
+                  <div style={{background:eloPromotion.eligible?"rgba(63,185,80,0.07)":"rgba(210,153,34,0.07)",border:`1px solid ${eloPromotion.eligible?"rgba(63,185,80,0.25)":"rgba(210,153,34,0.25)"}`,borderRadius:8,padding:"10px 14px",marginBottom:10}}>
+                    <div style={{fontSize:12,fontWeight:700,color:eloPromotion.eligible?grn:amb}}>
+                      {eloPromotion.eligible ? "✅ Eligible for promotion" : "⚠️ " + eloPromotion.reason}
                     </div>
-                    {!eloPromotion.atMax && eloPromotion.technicalPct > 0 && <div style={{fontSize:8,color:txt3,marginTop:2}}>
-                      Technical {eloPromotion.technicalPct?.toFixed(0)}% · Avg R {eloPromotion.avgR?.toFixed(2)}
+                    {!eloPromotion.atMax && eloPromotion.technicalPct > 0 && <div style={{fontSize:11,color:txt3,marginTop:4}}>
+                      Technical {eloPromotion.technicalPct?.toFixed(0)}% (need 70%) · Avg R {eloPromotion.avgR?.toFixed(2)} (need ≥0)
                     </div>}
                   </div>
 
-                  <div style={{fontSize:8,color:txt3,textAlign:"center"}}>Calibrated {calibration.calibrationDate} · {calibration.tradesAnalyzed} trades analyzed</div>
+                  <div style={{fontSize:10,color:txt3,textAlign:"center"}}>Calibrated {calibration.calibrationDate} · {calibration.tradesAnalyzed} trades analyzed</div>
                 </div>
               )}
             </div>
@@ -2433,6 +2552,20 @@ SKILLS YOU HAVE:
                 <div style={{ fontSize: 9, color: txt3, lineHeight: 1.6, padding: "6px 4px" }}>
                   Includes: all trades · patterns · your recorded rationale · emotional flag check · monthly P&L breakdown
                 </div>
+
+                {/* Trading Diary — Word document */}
+                <div style={{marginTop:10,borderTop:`1px solid ${bdr}`,paddingTop:10}}>
+                  <div style={{fontSize:9,fontWeight:700,color:txt3,textTransform:"uppercase",letterSpacing:"0.1em",marginBottom:6}}>📄 Trading Diary (.docx)</div>
+                  <button
+                    onClick={()=>generateTradingDiary(journalMonth)}
+                    disabled={diaryLoading}
+                    style={{...C.btn("green"),fontSize:12,fontWeight:700,padding:"10px",opacity:diaryLoading?0.6:1,letterSpacing:"0.03em"}}>
+                    {diaryLoading ? '⏳ Generating…' : '📄 Generate Word Document'}
+                  </button>
+                  <div style={{fontSize:9,color:txt3,marginTop:5,lineHeight:1.5}}>
+                    Generates a complete .docx with ELO rank, positions, trade history, P&L summary and space for notes. A save dialog will appear.
+                  </div>
+                </div>
               </div>
             </div>
 
@@ -2931,6 +3064,36 @@ SKILLS YOU HAVE:
         </div>;
       })()}
 
+
+    {/* ── Trading Diary Loading Overlay ── */}
+    {diaryLoading && (
+      <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.85)",zIndex:99999,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center"}}>
+        <div style={{background:"#161b22",border:"1px solid #30363d",borderRadius:12,padding:"40px 60px",textAlign:"center",maxWidth:400}}>
+          <div style={{fontSize:40,marginBottom:16,animation:"spin 1.2s linear infinite",display:"inline-block"}}>📄</div>
+          <div style={{fontSize:18,fontWeight:700,color:"#c9d1d9",marginBottom:8}}>Generating Trading Diary</div>
+          <div style={{fontSize:12,color:"#8b949e",marginBottom:24}}>
+            {apiKey ? 'Calling Claude AI for psychological analysis…' : 'Building your Word document…'}
+          </div>
+          <div style={{height:4,background:"#21262d",borderRadius:2,overflow:"hidden"}}>
+            <div style={{height:"100%",background:"#3fb950",borderRadius:2,animation:"scanBar 1.5s ease-in-out infinite"}}/>
+          </div>
+          <div style={{fontSize:10,color:"#484f58",marginTop:12}}>A save dialog will appear when ready</div>
+        </div>
+      </div>
+    )}
+
+    {/* ── Diary Result Toast ── */}
+    {diaryResult && !diaryLoading && (
+      <div style={{position:"fixed",bottom:24,right:24,zIndex:9999,background:diaryResult.success?"rgba(35,134,54,0.95)":"rgba(248,81,73,0.95)",color:"#fff",borderRadius:8,padding:"12px 18px",fontSize:13,fontWeight:600,fontFamily:"inherit",boxShadow:"0 4px 20px rgba(0,0,0,0.4)",maxWidth:360}}>
+        {diaryResult.success
+          ? `✅ Diary saved successfully`
+          : `❌ ${diaryResult.reason === 'cancelled' ? 'Save cancelled' : diaryResult.error || 'Failed to generate'}`
+        }
+        {diaryResult.success && diaryResult.filePath && (
+          <div style={{fontSize:10,opacity:0.8,marginTop:4,wordBreak:"break-all"}}>{diaryResult.filePath}</div>
+        )}
+      </div>
+    )}
 
     {showTweet&&<TweetModal
       draft={tweetDraft}

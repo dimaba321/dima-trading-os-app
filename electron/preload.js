@@ -13,6 +13,9 @@ contextBridge.exposeInMainWorld('electronAPI', {
   // Dev helper
   log:             (...a)  => ipcRenderer.send('log', ...a),
 
+  // Trading Diary — generates .docx + native save dialog
+  generateDiary: (payload) => ipcRenderer.invoke('generate-diary', payload),
+
   // Detect we're in Electron
   isElectron: true,
 });
