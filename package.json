@@ -68,12 +68,14 @@
         "filter": [
           "**/*",
           "!node_modules",
+          "!.env",
           "!data/positions.json",
           "!data/closed_trades.json",
           "!data/trades.db",
           "!data/settings.json",
           "!data/portfolio.json",
-          "!data/stats.json"
+          "!data/stats.json",
+          "!data/universe_additions.json"
         ]
       }
     ]
