@@ -76,7 +76,6 @@
         "to": "backend",
         "filter": [
           "**/*",
-          "!node_modules",
           "!.env",
           "!data/positions.json",
           "!data/closed_trades.json",
@@ -84,7 +83,9 @@
           "!data/settings.json",
           "!data/portfolio.json",
           "!data/stats.json",
-          "!data/universe_additions.json"
+          "!data/universe_additions.json",
+          "!node_modules/.cache",
+          "!node_modules/nodemon"
         ]
       }
     ]

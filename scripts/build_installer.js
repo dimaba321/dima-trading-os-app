@@ -50,8 +50,18 @@ if (isClean && newVer !== oldVer) {
   console.log(`[0] Version bumped: ${oldVer} → ${newVer}`);
 }
 
+// ── Step 0: Install backend production dependencies ───────────────────────────
+// Ensures backend/node_modules has only production packages before bundling.
+const backendDir = path.join(ROOT, '..', 'backend');
+if (fs.existsSync(backendDir)) {
+  console.log('[0/4] Installing backend production dependencies...');
+  execSync('npm install --production --prefer-offline', {
+    cwd: backendDir, stdio: 'inherit',
+  });
+}
+
 // ── Step 1: Build Vite app ────────────────────────────────────────────────────
-console.log('[1/4] Building React frontend...');
+console.log('[1/5] Building React frontend...');
 execSync('npx vite build', { cwd: ROOT, stdio: 'inherit' });
 
 // ── Step 2: If clean build, patch source to remove personal data ──────────────
@@ -60,7 +70,7 @@ const srcFile = path.join(ROOT, 'src', 'DimaTradingOS.jsx');
 let srcBackup  = null;
 
 if (isClean) {
-  console.log('[2/4] Applying clean patch (removing personal data)...');
+  console.log('[2/5] Applying clean patch (removing personal data)...');
   srcBackup = fs.readFileSync(srcFile, 'utf8');
   let patched = srcBackup;
 
@@ -84,12 +94,12 @@ if (isClean) {
   fs.writeFileSync(srcFile, patched, 'utf8');
   patchApplied = true;
 
-  console.log('[2/4] Rebuilding with clean data...');
+  console.log('[2/5] Rebuilding with clean data...');
   execSync('npx vite build', { cwd: ROOT, stdio: 'inherit' });
 }
 
 // ── Step 3: Build installer ───────────────────────────────────────────────────
-console.log('[3/4] Building Windows installer...');
+console.log('[3/5] Building Windows installer...');
 const env = {
   ...process.env,
   WIN_CSC_LINK: '',
@@ -108,7 +118,7 @@ try {
     // Restore original version in package.json for personal use
     pkg.version = isClean ? newVer : oldVer; // keep new version after customer build
     fs.writeFileSync(pkgFile, JSON.stringify(pkg, null, 2) + '\n', 'utf8');
-    console.log('[4/4] Source restored.');
+    console.log('[4/5] Source restored.');
   }
 }
 
