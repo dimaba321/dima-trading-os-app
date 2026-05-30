@@ -360,6 +360,11 @@ export default function DimaTradingOS() {
   const [cfEmotional, setCfEmotional] = useState(false);
   // Skill journal
   const [skillJournal, setSkillJournal] = useState('');
+  // API key management
+  const [serverConfig, setServerConfig]   = useState(null);
+  const [configInputs, setConfigInputs]   = useState({ ANTHROPIC_API_KEY:'', TELEGRAM_BOT_TOKEN:'', TELEGRAM_CHAT_ID:'', NEWS_API_KEY:'', FINNHUB_API_KEY:'' });
+  const [configSaving, setConfigSaving]   = useState(false);
+  const [configSaved,  setConfigSaved]    = useState(false);
   // API key test
   const [keyTestResult, setKeyTestResult] = useState(null);
   const [keyTesting,    setKeyTesting]    = useState(false);
@@ -600,6 +605,42 @@ export default function DimaTradingOS() {
         setUniverseScanRunning(false);
       }, 60000);
     } catch { setUniverseScanRunning(false); }
+  }
+
+  // Load server config status on startup
+  useEffect(() => {
+    fetch(`${BACKEND}/api/config`)
+      .then(r => r.json())
+      .then(d => setServerConfig(d))
+      .catch(() => {});
+  }, []);
+
+  async function saveServerConfig() {
+    // Only send fields that have a value entered
+    const payload = {};
+    Object.entries(configInputs).forEach(([k, v]) => { if (v.trim()) payload[k] = v.trim(); });
+    if (!Object.keys(payload).length) return;
+    setConfigSaving(true);
+    try {
+      const r = await fetch(`${BACKEND}/api/config`, {
+        method: 'PUT', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+      if (r.ok) {
+        // Also update Anthropic key in localStorage for frontend use
+        if (payload.ANTHROPIC_API_KEY) {
+          setApiKey(payload.ANTHROPIC_API_KEY);
+          try { localStorage.setItem('dima_key', payload.ANTHROPIC_API_KEY); } catch {}
+        }
+        setConfigInputs({ ANTHROPIC_API_KEY:'', TELEGRAM_BOT_TOKEN:'', TELEGRAM_CHAT_ID:'', NEWS_API_KEY:'', FINNHUB_API_KEY:'' });
+        setConfigSaved(true);
+        setTimeout(() => setConfigSaved(false), 3000);
+        // Refresh status
+        const fresh = await fetch(`${BACKEND}/api/config`).then(r2 => r2.json()).catch(() => null);
+        if (fresh) setServerConfig(fresh);
+      }
+    } catch {}
+    setConfigSaving(false);
   }
 
   async function fetchBTC() {
@@ -1713,37 +1754,63 @@ ${skillJournal ? `\nSKILL JOURNAL (${username}'s own recorded lessons — refere
                   />
                   <div style={{fontSize:9,color:txt3,marginTop:4}}>Shown in nav bar and system prompt</div>
                 </div>
-                {/* API Key compact */}
+                {/* API Keys & Server Config */}
                 <div style={C.card}>
-                  <div style={{fontSize:9,fontWeight:700,color:txt3,textTransform:"uppercase",letterSpacing:"0.1em",marginBottom:6}}>🔑 API Key</div>
-                  {!apiKey ? (
-                    <><input value={keyInput} onChange={e=>setKeyInput(e.target.value)}
-                        onKeyDown={e=>{if(e.key==="Enter"&&keyInput.trim()){const k=keyInput.trim();setApiKey(k);try{localStorage.setItem("dima_key",k);}catch{}setKeyInput("");}}}
-                        placeholder="sk-ant-api03-..." style={{...C.fi,marginBottom:5,fontSize:10}} type="password"/>
-                      <button onClick={()=>{const k=keyInput.trim();if(k){setApiKey(k);try{localStorage.setItem("dima_key",k);}catch{}setKeyInput("");}}} style={{...C.btn("green"),padding:"4px",marginBottom:0,fontSize:10}}>Save</button>
-                    </>
-                  ) : (
-                    <>
-                      <div style={{fontSize:9,color:grn,marginBottom:6}}>✓ Active (···{apiKey.slice(-6)})</div>
-                      <button onClick={testApiKey} disabled={keyTesting}
-                        style={{background:"none",border:`1px solid rgba(63,185,80,0.3)`,color:grn,borderRadius:4,padding:"4px 8px",cursor:"pointer",fontSize:10,fontFamily:"inherit",width:"100%",marginBottom:4,fontWeight:600}}>
-                        {keyTesting ? '⏳ Testing…' : '⚡ Test Key'}
-                      </button>
-                      {keyTestResult && <div style={{fontSize:9,color:keyTestResult.ok?grn:red,marginBottom:5,lineHeight:1.4}}>{keyTestResult.msg}</div>}
-                      <button onClick={()=>{setApiKey("");try{localStorage.removeItem("dima_key");}catch{}setKeyTestResult(null);}}
-                        style={{background:"none",border:`1px solid rgba(248,81,73,0.25)`,color:red,borderRadius:4,padding:"3px 8px",cursor:"pointer",fontSize:9,fontFamily:"inherit",width:"100%"}}>
-                        Clear Key
-                      </button>
-                    </>
-                  )}
-                </div>
-                {/* Chat status */}
-                <div style={{...C.card,padding:"8px 12px"}}>
-                  <div style={{fontSize:9,fontWeight:700,color:txt3,textTransform:"uppercase",letterSpacing:"0.1em",marginBottom:4}}>AT CHAT</div>
-                  <div style={{fontSize:10,color:apiKey?grn:txt3}}>
-                    <span style={{marginRight:5}}>●</span>
-                    {apiKey ? 'Connected — use Chat tab or skill buttons' : 'Set API key to enable AI'}
+                  <div style={{fontSize:9,fontWeight:700,color:txt3,textTransform:"uppercase",letterSpacing:"0.1em",marginBottom:10}}>🔑 API Keys</div>
+
+                  {/* Status dots */}
+                  <div style={{display:"flex",flexWrap:"wrap",gap:5,marginBottom:12}}>
+                    {[
+                      {label:"Anthropic", ok: serverConfig?.hasAnthropicKey || !!apiKey},
+                      {label:"Telegram",  ok: serverConfig?.hasTelegram},
+                      {label:"NewsAPI",   ok: serverConfig?.hasNewsApi},
+                      {label:"Finnhub",   ok: serverConfig?.hasFinnhub},
+                    ].map(s=>(
+                      <span key={s.label} style={{fontSize:9,padding:"2px 7px",borderRadius:4,background:s.ok?"rgba(63,185,80,0.1)":"rgba(248,81,73,0.08)",color:s.ok?grn:txt3,border:`1px solid ${s.ok?"rgba(63,185,80,0.25)":"rgba(248,81,73,0.2)"}`}}>
+                        {s.ok?"✓":"✗"} {s.label}
+                      </span>
+                    ))}
                   </div>
+
+                  {/* Input rows */}
+                  {[
+                    {key:"ANTHROPIC_API_KEY",  label:"Anthropic API Key",  ph:"sk-ant-api03-...",    type:"password", req:true},
+                    {key:"TELEGRAM_BOT_TOKEN", label:"Telegram Bot Token", ph:"1234567890:AAHxxx...", type:"password"},
+                    {key:"TELEGRAM_CHAT_ID",   label:"Telegram Chat ID",   ph:"123456789",            type:"text"},
+                    {key:"NEWS_API_KEY",        label:"NewsAPI Key",        ph:"2b8dc48a...",          type:"password"},
+                    {key:"FINNHUB_API_KEY",     label:"Finnhub Key",        ph:"d8as0bhr...",          type:"password"},
+                  ].map(f=>(
+                    <div key={f.key} style={{marginBottom:8}}>
+                      <div style={{fontSize:9,color:txt3,marginBottom:3}}>
+                        {f.label} {f.req&&<span style={{color:red}}>*</span>}
+                      </div>
+                      <input
+                        type={f.type} placeholder={f.ph}
+                        value={configInputs[f.key]}
+                        onChange={e=>setConfigInputs(p=>({...p,[f.key]:e.target.value}))}
+                        style={{...C.fi,marginBottom:0,fontSize:10}}
+                      />
+                    </div>
+                  ))}
+
+                  <button onClick={saveServerConfig} disabled={configSaving}
+                    style={{...C.btn(configSaved?"":"green"),marginTop:8,fontSize:11,fontWeight:700,opacity:configSaving?0.6:1}}>
+                    {configSaving?"Saving…":configSaved?"✓ Saved to server":"Save Keys → Server + .env"}
+                  </button>
+                  <div style={{fontSize:9,color:txt3,marginTop:5,lineHeight:1.5}}>
+                    Keys saved here update the backend live and persist in the .env file.
+                  </div>
+
+                  {/* Anthropic quick test */}
+                  {(serverConfig?.hasAnthropicKey||apiKey) && (
+                    <div style={{marginTop:8,borderTop:`1px solid ${bdr}`,paddingTop:8}}>
+                      <button onClick={testApiKey} disabled={keyTesting}
+                        style={{background:"none",border:`1px solid rgba(63,185,80,0.3)`,color:grn,borderRadius:4,padding:"4px 8px",cursor:"pointer",fontSize:9,fontFamily:"inherit",width:"100%",fontWeight:600}}>
+                        {keyTesting?"⏳ Testing…":"⚡ Test Anthropic Key"}
+                      </button>
+                      {keyTestResult&&<div style={{fontSize:9,color:keyTestResult.ok?grn:red,marginTop:4,lineHeight:1.4}}>{keyTestResult.msg}</div>}
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
