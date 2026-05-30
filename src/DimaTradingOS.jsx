@@ -365,6 +365,8 @@ export default function DimaTradingOS() {
   const [keyTesting,    setKeyTesting]    = useState(false);
   const [agentStats, setAgentStats] = useState(null);
   const [agentStatsLoading, setAgentStatsLoading] = useState(false);
+  const [universeStatus, setUniverseStatus] = useState(null);
+  const [universeScanRunning, setUniverseScanRunning] = useState(false);
   const [journalMonth, setJournalMonth] = useState(() => {
     const now = new Date();
     return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
@@ -567,10 +569,26 @@ export default function DimaTradingOS() {
   async function fetchAgentStats() {
     setAgentStatsLoading(true);
     try {
-      const r = await fetch(`${BACKEND}/api/stats/full`);
-      if (r.ok) setAgentStats(await r.json());
+      const [statsR, univR] = await Promise.all([
+        fetch(`${BACKEND}/api/stats/full`),
+        fetch(`${BACKEND}/api/universe/status`),
+      ]);
+      if (statsR.ok) setAgentStats(await statsR.json());
+      if (univR.ok)  setUniverseStatus(await univR.json());
     } catch {}
     setAgentStatsLoading(false);
+  }
+
+  async function runUniverseScan() {
+    setUniverseScanRunning(true);
+    try {
+      await fetch(`${BACKEND}/api/universe/scan`, { method: 'POST' });
+      // Poll status after 60s — scan takes time
+      setTimeout(async () => {
+        try { const r = await fetch(`${BACKEND}/api/universe/status`); if (r.ok) setUniverseStatus(await r.json()); } catch {}
+        setUniverseScanRunning(false);
+      }, 60000);
+    } catch { setUniverseScanRunning(false); }
   }
 
   async function fetchBTC() {
@@ -2651,6 +2669,54 @@ ${skillJournal ? `\nSKILL JOURNAL (Dima's own recorded lessons — reference the
             </div>
           )}
         </>)}
+
+        {/* ── SECTION 3: DYNAMIC UNIVERSE EXPANSION ── */}
+        <div style={C.card}>
+          <div style={{...C.sh, marginBottom: 12}}>
+            <div>
+              <span style={C.stit}>Dynamic Universe</span>
+              <span style={{ fontSize: 9, color: txt3, marginLeft: 8 }}>
+                Static: 202 tickers · Dynamic: {universeStatus?.count ?? '—'} added · Pool: {universeStatus?.candidatePool ?? '—'} candidates
+              </span>
+            </div>
+            <button
+              onClick={runUniverseScan}
+              disabled={universeScanRunning}
+              style={{ fontSize: 9, padding: "3px 9px", background: universeScanRunning ? bg3 : "rgba(63,185,80,0.1)", border: `1px solid ${universeScanRunning ? bdr2 : grn}`, color: universeScanRunning ? txt3 : grn, borderRadius: 4, cursor: universeScanRunning ? "not-allowed" : "pointer", fontFamily: "inherit" }}
+            >
+              {universeScanRunning ? "Scanning… (~60s)" : "▶ Run Scan Now"}
+            </button>
+          </div>
+          {!universeStatus ? (
+            <div style={{ fontSize: 11, color: txt3 }}>Load the page to fetch universe status.</div>
+          ) : (
+            <>
+              <div style={{ fontSize: 9, color: txt3, marginBottom: 8 }}>
+                Last screened: {universeStatus.lastScreened ? new Date(universeStatus.lastScreened).toLocaleDateString() : "Never"} · Auto-runs every Sunday 2:00 AM ET · Criteria: price ≥ $5, avg vol ≥ 3M/day
+              </div>
+              {universeStatus.dynamicTickers?.length > 0 ? (
+                <div style={{ display: "flex", flexWrap: "wrap", gap: 4 }}>
+                  {universeStatus.dynamicTickers.map(t => (
+                    <span key={t} style={{ fontSize: 9, padding: "2px 7px", background: "rgba(63,185,80,0.08)", border: `1px solid rgba(63,185,80,0.2)`, borderRadius: 4, color: grn, fontFamily: "monospace" }}>{t}</span>
+                  ))}
+                </div>
+              ) : (
+                <div style={{ fontSize: 11, color: txt3, fontStyle: "italic" }}>No dynamic tickers yet — click "Run Scan Now" to populate.</div>
+              )}
+              {universeStatus.recentHistory?.length > 0 && (
+                <div style={{ marginTop: 10 }}>
+                  <div style={{ fontSize: 9, color: txt3, textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: 6 }}>Recent scans</div>
+                  {[...universeStatus.recentHistory].reverse().slice(0, 3).map((h, i) => (
+                    <div key={i} style={{ fontSize: 10, color: txt2, padding: "4px 0", borderBottom: `1px solid ${bdr}` }}>
+                      {h.date?.slice(0,10)} — +{h.added?.length ?? 0} added, -{h.removed?.length ?? 0} removed → {h.total} dynamic
+                      {h.added?.length > 0 && <span style={{ color: grn, marginLeft: 6 }}>{h.added.join(", ")}</span>}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </>
+          )}
+        </div>
       </div>}
 
       {/* ── SKILLS ── */}
