@@ -214,12 +214,12 @@ app.whenReady().then(async () => {
   if (isFirstRun() && !isDev) {
     closeSplash();
     const setupWin = new BrowserWindow({
-      width: 500, height: 520, resizable: false, frame: true,
+      width: 500, height: 560, resizable: false, frame: false,
+      transparent: false,
       backgroundColor: '#0d1117',
       icon: path.join(__dirname, '..', 'public', 'dima_trading_os_icon_256.png'),
       webPreferences: { contextIsolation: true },
     });
-    setupWin.setMenuBarVisibility(false);
     setupWin.loadFile(path.join(__dirname, 'firstrun.html'));
 
     // Poll for setup completion via URL hash

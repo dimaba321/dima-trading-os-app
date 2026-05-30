@@ -5,32 +5,150 @@
   <title>Dima Trading OS — Setup</title>
   <style>
     * { margin:0; padding:0; box-sizing:border-box; }
-    body { background:#0d1117; color:#c9d1d9; font-family:'SF Mono','Fira Code',monospace;
-           display:flex; align-items:center; justify-content:center; height:100vh; }
-    .card { background:#161b22; border:1px solid #30363d; border-radius:12px;
-            padding:40px; width:440px; }
-    h1 { font-size:22px; color:#3fb950; margin-bottom:6px; }
-    p  { font-size:12px; color:#8b949e; margin-bottom:28px; line-height:1.6; }
-    label { font-size:10px; color:#8b949e; text-transform:uppercase; letter-spacing:.1em;
-            display:block; margin-bottom:5px; }
-    input { width:100%; background:#1c2128; border:1px solid #30363d; color:#c9d1d9;
-            font-family:inherit; font-size:13px; padding:8px 12px; border-radius:6px;
-            outline:none; margin-bottom:16px; }
+
+    body {
+      background:#0d1117;
+      color:#c9d1d9;
+      font-family:'SF Mono','Fira Code',monospace;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      height:100vh;
+      overflow:hidden;
+      /* Allow dragging the borderless window by dragging anywhere on body */
+      -webkit-app-region: drag;
+    }
+
+    /* Close button top-right */
+    .close-btn {
+      position:fixed;
+      top:12px; right:14px;
+      width:24px; height:24px;
+      border-radius:50%;
+      background:rgba(248,81,73,0.15);
+      border:1px solid rgba(248,81,73,0.3);
+      color:#f85149;
+      font-size:14px;
+      line-height:24px;
+      text-align:center;
+      cursor:pointer;
+      -webkit-app-region: no-drag;
+      transition: background 0.15s;
+    }
+    .close-btn:hover { background:rgba(248,81,73,0.35); }
+
+    .card {
+      background:#161b22;
+      border:1px solid #30363d;
+      border-radius:14px;
+      padding:32px 36px 28px;
+      width:440px;
+      -webkit-app-region: no-drag;
+    }
+
+    .logo-wrap {
+      display:flex;
+      justify-content:center;
+      margin-bottom:16px;
+    }
+    .logo-wrap img {
+      width:72px;
+      height:72px;
+      object-fit:contain;
+      border-radius:12px;
+    }
+
+    h1 {
+      font-size:20px;
+      color:#3fb950;
+      text-align:center;
+      margin-bottom:5px;
+      letter-spacing:0.02em;
+    }
+    p  {
+      font-size:11px;
+      color:#8b949e;
+      margin-bottom:24px;
+      line-height:1.6;
+      text-align:center;
+    }
+    label {
+      font-size:10px;
+      color:#8b949e;
+      text-transform:uppercase;
+      letter-spacing:.1em;
+      display:block;
+      margin-bottom:5px;
+    }
+    input {
+      width:100%;
+      background:#1c2128;
+      border:1px solid #30363d;
+      color:#c9d1d9;
+      font-family:inherit;
+      font-size:13px;
+      padding:8px 12px;
+      border-radius:6px;
+      outline:none;
+      margin-bottom:14px;
+      -webkit-app-region: no-drag;
+    }
     input:focus { border-color:#3fb950; }
-    button { width:100%; background:#238636; color:#fff; border:none; border-radius:6px;
-             padding:12px; font-size:14px; font-weight:700; cursor:pointer;
-             font-family:inherit; margin-top:8px; }
-    button:hover { background:#2ea043; }
-    .skip { background:none; color:#8b949e; border:1px solid #30363d;
-            font-size:12px; font-weight:400; margin-top:8px; }
-    .skip:hover { color:#c9d1d9; }
-    .note { font-size:10px; color:#484f58; margin-top:12px; line-height:1.6; }
+
+    .btn-primary {
+      width:100%;
+      background:#238636;
+      color:#fff;
+      border:none;
+      border-radius:8px;
+      padding:12px;
+      font-size:14px;
+      font-weight:700;
+      cursor:pointer;
+      font-family:inherit;
+      margin-top:6px;
+      -webkit-app-region: no-drag;
+      transition: background 0.15s;
+    }
+    .btn-primary:hover { background:#2ea043; }
+
+    .btn-skip {
+      width:100%;
+      background:none;
+      color:#8b949e;
+      border:1px solid #30363d;
+      border-radius:8px;
+      padding:10px;
+      font-size:12px;
+      font-weight:400;
+      cursor:pointer;
+      font-family:inherit;
+      margin-top:8px;
+      -webkit-app-region: no-drag;
+      transition: color 0.15s;
+    }
+    .btn-skip:hover { color:#c9d1d9; border-color:#484f58; }
+
+    .note {
+      font-size:10px;
+      color:#484f58;
+      margin-top:14px;
+      line-height:1.6;
+      text-align:center;
+    }
   </style>
 </head>
 <body>
+  <div class="close-btn" onclick="window.close()" title="Close">✕</div>
+
   <div class="card">
-    <h1>🚀 Welcome to Dima Trading OS</h1>
-    <p>First-time setup. Enter your details to get started. Account value is managed inside the Dashboard.</p>
+    <!-- Logo -->
+    <div class="logo-wrap">
+      <img src="../public/dima_trading_os_icon_256.png" alt="Dima Trading OS"/>
+    </div>
+
+    <h1>Welcome to Dima Trading OS</h1>
+    <p>First-time setup. Account value is managed inside the Dashboard.</p>
 
     <label>Your Name</label>
     <input type="text" id="username" placeholder="e.g. Dima" autocomplete="off"/>
@@ -41,11 +159,11 @@
     <label>Telegram Bot Token (optional)</label>
     <input type="text" id="telegram" placeholder="Leave blank to set up later"/>
 
-    <button onclick="save()">▶ Start Trading OS</button>
-    <button class="skip" onclick="skip()">Skip — set up later</button>
+    <button class="btn-primary" onclick="save()">▶ Start Trading OS</button>
+    <button class="btn-skip"    onclick="skip()">Skip — set up later</button>
 
     <div class="note">
-      Your data stays on this machine only. API keys are stored in the app's local config file.
+      Your data stays on this machine only.<br>API keys are stored in the app's local config file.
     </div>
   </div>
 
