@@ -218,8 +218,11 @@ CONTENTS
 8. SUPPORT
 ────────────────────────────────────────────────────────────────────────────────
 
-  Data location (all your trades and settings):
-    C:\Users\[YourName]\AppData\Local\Programs\Trading OS\
+  App installed to (default):
+    C:\Program Files\Dima Trading OS\
+
+  Data location (trades, settings — survives uninstall):
+    C:\Users\[YourName]\AppData\Roaming\Dima Trading OS\
 
   Your data never leaves your machine. No cloud sync, no subscription.
   All AI calls go directly to Anthropic using your own API key.
