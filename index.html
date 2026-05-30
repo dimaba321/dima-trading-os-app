@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>DIMA // TRADING OS</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { background: #0d1117; font-family: 'SF Mono', 'Fira Code', monospace; }
+    select option { background: #1c2128; color: #c9d1d9; }
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: #0d1117; }
+    ::-webkit-scrollbar-thumb { background: #30363d; border-radius: 3px; }
+    #toast {
+      position: fixed; bottom: 20px; right: 20px; z-index: 9999;
+      background: #238636; color: #fff; padding: 10px 16px;
+      border-radius: 8px; font-family: 'SF Mono', 'Fira Code', monospace;
+      font-size: 12px; font-weight: 600; pointer-events: none;
+      opacity: 0; transition: opacity 0.2s;
+    }
+    #toast.show { opacity: 1; }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+  <div id="toast">Copied — paste into Claude ↗</div>
+  <script type="module" src="/src/main.jsx"></script>
+</body>
+</html>

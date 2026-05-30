@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <style>
+    /* ── CRITICAL: both html AND body need border-radius for transparent window clipping ── */
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    html {
+      width: 420px; height: 470px;
+      border-radius: 28px;
+      overflow: hidden;
+      background: transparent;
+    }
+
+    body {
+      width: 420px; height: 470px;
+      border-radius: 28px;
+      overflow: hidden;
+      background: transparent;
+      font-family: 'SF Mono', 'Fira Code', monospace;
+      position: relative;
+    }
+
+    /* Background image fills the whole window — no gaps */
+    .bg {
+      position: absolute;
+      inset: 0;
+      background: url('../public/ICON.png') center center / cover no-repeat;
+      border-radius: 28px;
+    }
+
+    /* Dark overlay — keeps text readable without hiding the art */
+    .overlay {
+      position: absolute;
+      inset: 0;
+      border-radius: 28px;
+      background: linear-gradient(
+        to bottom,
+        rgba(13,17,23,0.05) 0%,
+        rgba(13,17,23,0.10) 50%,
+        rgba(13,17,23,0.75) 80%,
+        rgba(13,17,23,0.90) 100%
+      );
+    }
+
+    /* Content pinned to bottom */
+    .content {
+      position: absolute;
+      left: 0; right: 0; bottom: 28px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    .title {
+      color: #fff;
+      font-size: 20px;
+      font-weight: 700;
+      letter-spacing: 0.22em;
+      text-shadow: 0 2px 12px rgba(0,0,0,0.9);
+    }
+
+    .subtitle {
+      color: rgba(255,255,255,0.50);
+      font-size: 10px;
+      letter-spacing: 0.28em;
+      margin-top: 4px;
+      text-transform: uppercase;
+    }
+
+    .bar-wrap {
+      width: 200px;
+      height: 2px;
+      background: rgba(255,255,255,0.12);
+      border-radius: 2px;
+      margin-top: 18px;
+      overflow: hidden;
+    }
+
+    .bar {
+      height: 100%;
+      background: #3fb950;
+      border-radius: 2px;
+      animation: load 2.8s ease-in-out forwards;
+    }
+
+    @keyframes load {
+      0%   { width: 0%; }
+      50%  { width: 60%; }
+      85%  { width: 90%; }
+      100% { width: 100%; }
+    }
+
+    .status {
+      color: rgba(255,255,255,0.35);
+      font-size: 9px;
+      margin-top: 7px;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      animation: fade 1.5s ease-in-out infinite;
+    }
+
+    @keyframes fade { 0%,100%{opacity:0.4} 50%{opacity:0.9} }
+  </style>
+</head>
+<body>
+  <div class="bg"></div>
+  <div class="overlay"></div>
+  <div class="content">
+    <div class="title">DIMA // TRADING OS</div>
+    <div class="subtitle">Intelligent Trading Platform</div>
+    <div class="bar-wrap"><div class="bar"></div></div>
+    <div class="status">Starting backend...</div>
+  </div>
+</body>
+</html>

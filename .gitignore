@@ -1,0 +1,7 @@
+node_modules/
+dist/
+.electron-data/
+*.log
+
+# Keep public/ranks badges but ignore large source PNGs if needed
+# public/ranks/
