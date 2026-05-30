@@ -307,7 +307,7 @@ function TweetModal({ draft, onTextChange, onClose, onPost, posting }) {
 // ═══════════════════════════════════════════════════════════════
 
 // ── Data version — bump whenever DEFAULT_POS or TRADES changes ───────────────
-const DATA_VERSION = "2026-05-30-v4";  // deposits cleared, ACCOUNT=$14444 base
+const DATA_VERSION = "2026-05-30-v5";  // force reload from SQLite — fixed stop=0 bug
 
 // Atomic version check — runs ONCE before component mounts.
 // Clears BOTH keys together so useState never sees a partial reset.
@@ -419,7 +419,11 @@ export default function DimaTradingOS() {
   const [keyInput,     setKeyInput]     = useState("");
   const [showSettings, setShowSettings] = useState(false);
   // Chat state
-  const [chatMessages, setChatMessages] = useState([]);
+  // Chat history — persisted to localStorage so diary sees conversations after restart
+  const [chatMessages, setChatMessages] = useState(() => {
+    try { const s = localStorage.getItem("dima_chat"); return s ? JSON.parse(s) : []; }
+    catch { return []; }
+  });
   const [chatInput,    setChatInput]    = useState('');
   const [chatLoading,  setChatLoading]  = useState(false);
   const chatEndRef = React.useRef(null);
@@ -439,6 +443,21 @@ export default function DimaTradingOS() {
   useEffect(() => { const t = setInterval(() => setTime(getTime()), 1000); return () => clearInterval(t); }, []);
   useEffect(() => { fetchBTC(); const t = setInterval(fetchBTC, 30000); return () => clearInterval(t); }, []);
 
+  // Restore ELO calibration from backend if localStorage is empty (new machine / cleared cache)
+  useEffect(() => {
+    if (calibration) return; // already loaded from localStorage
+    fetch('http://localhost:3000/api/trades/settings/elo_calibration')
+      .then(r => r.json())
+      .then(d => {
+        if (d.value) {
+          const cal = JSON.parse(d.value);
+          setCalibration(cal);
+          try { localStorage.setItem("dima_calibration", d.value); } catch {}
+          console.log('[ELO] Calibration restored from backend');
+        }
+      }).catch(() => {});
+  }, []);
+
   // ── Startup: load from backend DB (source of truth after first sync) ─────────
   useEffect(() => {
     // Load positions from backend — if backend has data, use it (overrides localStorage)
@@ -447,6 +466,11 @@ export default function DimaTradingOS() {
         setPositions(data);
         try { localStorage.setItem("dima_p5", JSON.stringify(data)); } catch {}
         console.log('[DB] Loaded', data.length, 'positions from backend');
+        // Sync to portfolio.service.js so Position Monitor agent reads correct data
+        fetch('http://localhost:3000/api/portfolio/sync', {
+          method:'POST', headers:{'Content-Type':'application/json'},
+          body: JSON.stringify({ positions: data }),
+        }).catch(() => {});
       } else if (data && data.length === 0) {
         // Backend is empty — seed it with current state
         syncPositions(positions).catch(() => {});
@@ -469,6 +493,17 @@ export default function DimaTradingOS() {
   // Sync to backend (persistent database) — fire-and-forget, won't block UI
   useEffect(() => { syncPositions(positions).catch(() => {}); }, [positions]);
   useEffect(() => { syncClosedTrades(closed).catch(() => {}); }, [closed]);
+  // Persist chat history to localStorage (last 60 messages) + backend settings
+  useEffect(() => {
+    if (!chatMessages.length) return;
+    const recent = chatMessages.slice(-60);
+    try { localStorage.setItem("dima_chat", JSON.stringify(recent)); } catch {}
+    // Also backup to backend (fire-and-forget)
+    fetch('http://localhost:3000/api/trades/settings/chat_history', {
+      method: 'PUT', headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ value: JSON.stringify(recent.slice(-20)) }), // last 20 to backend
+    }).catch(() => {});
+  }, [chatMessages]);
   useEffect(() => {
     if (tab === "stats") {
       setTimeout(buildCharts, 120);
@@ -532,9 +567,14 @@ export default function DimaTradingOS() {
 
   function buildCharts() {
     if (eqRef.current && !eqChart.current) {
+      // Equity curve: oldest first using seq (correct trade order), fallback to date
+      const chronological = [...closed].sort((a, b) => {
+        if (a.seq != null && b.seq != null) return a.seq - b.seq;
+        return (a.date||'') > (b.date||'') ? 1 : -1;
+      });
       let cum = 0;
-      const data = closed.map(t => { cum = parseFloat((cum + t.pnl).toFixed(2)); return cum; });
-      const labs = closed.map(t => t.ticker);
+      const data = chronological.map(t => { cum = parseFloat((cum + t.pnl).toFixed(2)); return cum; });
+      const labs = chronological.map(t => t.ticker);
       const ptC = data.map((_, i) => data[i] >= (i > 0 ? data[i - 1] : 0) ? "rgba(63,185,80,1)" : "rgba(248,81,73,1)");
       eqChart.current = new Chart(eqRef.current, {
         type: "line",
@@ -1038,6 +1078,11 @@ Then NEW LINE: write a direct 2-4 sentence debrief to Dima. Be honest. Name best
     const result = calculateCalibration(closed);
     setCalibration(result);
     try { localStorage.setItem("dima_calibration", JSON.stringify(result)); } catch {}
+    // Backup to backend — survives localStorage clear and machine changes
+    fetch('http://localhost:3000/api/trades/settings/elo_calibration', {
+      method: 'PUT', headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ value: JSON.stringify(result) }),
+    }).catch(() => {});
     setShowCalibration(true);
     console.log('[ELO] Calibration complete:', result);
   }
@@ -1136,6 +1181,35 @@ SKILLS YOU HAVE:
 - Stock scout (finding 150 SMA setups)
 - Psychology check (emotional trade detection)
 - Trading journal review`;
+  }
+
+  // Quick-send to chat — used by Quick Actions buttons (auto-sends without user pressing Enter)
+  async function quickSend(prompt) {
+    if (!apiKey) { setTab('chat'); alert('Set your API key on the Dashboard tab first'); return; }
+    setTab('chat');
+    await new Promise(r => setTimeout(r, 150)); // let tab switch render
+    const now = new Date().toISOString();
+    const newMsg = { role: 'user', content: prompt, ts: now };
+    const history = [...chatMessages, newMsg];
+    setChatMessages(history);
+    setChatLoading(true);
+    try {
+      let systemPrompt;
+      try { systemPrompt = buildSystemPrompt(); } catch { systemPrompt = 'You are Dima\'s trading assistant.'; }
+      const resp = await fetch('http://localhost:3000/api/claude', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ apiKey, model: 'claude-sonnet-4-6', maxTokens: 2000,
+          system: systemPrompt, messages: history.map(m => ({ role: m.role, content: m.content })) }),
+      });
+      const d = await resp.json();
+      if (!resp.ok || d.type === 'error') throw new Error(d.error?.message || 'API error');
+      const reply = d.content?.[0]?.text || '(empty response)';
+      setChatMessages(prev => [...prev, { role: 'assistant', content: reply, ts: new Date().toISOString() }]);
+    } catch(e) {
+      setChatMessages(prev => [...prev, { role: 'assistant', content: '❌ Error: ' + e.message, ts: new Date().toISOString() }]);
+    }
+    setChatLoading(false);
+    setTimeout(() => chatEndRef.current?.scrollIntoView({ behavior: 'smooth' }), 100);
   }
 
   async function sendChatMessage() {
@@ -1320,7 +1394,15 @@ SKILLS YOU HAVE:
   });
 
   const histTickers = ["ALL", ...new Set(closed.map(t => t.ticker))];
-  const filteredHist = [...closed].reverse().filter(t => {
+  // History: newest first. Use seq (DB order) reversed, fallback to date sort
+  const filteredHist = [...closed]
+    .sort((a, b) => {
+      // If seq is available (from SQLite), use it reversed for newest-first
+      if (a.seq != null && b.seq != null) return b.seq - a.seq;
+      // Fallback: sort by date DESC
+      return (b.date||'') > (a.date||'') ? 1 : -1;
+    })
+    .filter(t => {
     if (histTicker !== "ALL" && t.ticker !== histTicker) return false;
     if (histResult === "WIN" && t.pnl <= 0) return false;
     if (histResult === "LOSS" && t.pnl > 0) return false;
@@ -1524,8 +1606,8 @@ SKILLS YOU HAVE:
                   <div style={{fontSize:9,fontWeight:700,color:txt3,textTransform:"uppercase",letterSpacing:"0.1em",marginBottom:8}}>QUICK ACTIONS</div>
                   <button onClick={()=>setTab('pos')} style={{...C.btn("green"),marginBottom:6,fontSize:11,fontWeight:700}}>+ Add / Close Position</button>
                   <button onClick={()=>setTab('stats')} style={{...C.btn(""),marginBottom:6,fontSize:11}}>📊 Statistics & Rank</button>
-                  <button onClick={()=>{setTab('chat');setTimeout(()=>{setChatInput("What's hot in the market today? Top 3 momentum stocks with catalyst.");},150);}} style={{...C.btn(""),marginBottom:6,fontSize:11}}>🔥 What's hot ↗</button>
-                  <button onClick={()=>{setTab('chat');setTimeout(()=>{setChatInput("Give me my morning briefing. Analyze my open positions vs current market conditions and BTC price. What do I need to watch today?");},150);}} style={{...C.btn(""),marginBottom:6,fontSize:11}}>🌅 Morning briefing ↗</button>
+                  <button onClick={()=>quickSend("What's hot in the market today? Top 3 momentum stocks with clear catalyst, volume confirmation, and 150 SMA setup. Filter out noise.")} style={{...C.btn(""),marginBottom:6,fontSize:11}}>🔥 What's hot ↗</button>
+                  <button onClick={()=>quickSend("Give me my morning briefing. Analyze my open positions vs current market conditions and BTC price. What do I need to watch today?")} style={{...C.btn(""),marginBottom:6,fontSize:11}}>🌅 Morning briefing ↗</button>
                   <button onClick={()=>generateTradingDiary(journalMonth)} disabled={diaryLoading} style={{...C.btn("green"),marginBottom:0,fontSize:11,fontWeight:700,opacity:diaryLoading?0.6:1}}>📄 {diaryLoading?'Generating…':'Trading Diary (.docx)'}</button>
                 </div>
                 {/* API Key compact */}
@@ -2349,6 +2431,17 @@ SKILLS YOU HAVE:
             <div style={{ padding: "16px 0", textAlign: "center" }}>
               <div style={{ fontSize: 12, color: txt3, marginBottom: 6 }}>Backend not connected</div>
               <div style={{ fontSize: 10, color: txt3, fontFamily: "monospace" }}>Start the trading server · localhost:3000</div>
+            </div>
+          ) : agentStats.totals?.signals === 0 ? (
+            <div style={{ padding: "12px", background: bg3, borderRadius: 6 }}>
+              <div style={{ fontSize: 12, color: txt2, fontWeight: 600, marginBottom: 6 }}>📡 Agent signals accumulating</div>
+              <div style={{ fontSize: 11, color: txt3, lineHeight: 1.6 }}>
+                This section tracks <strong style={{color:txt2}}>AI-generated signals</strong> from the CEO/Scout agents — separate from your manually entered trades.
+                Signal win rate and weight adaptation begin after <strong style={{color:txt2}}>10+ resolved signals per setup type</strong> (~3 months of daily scans).
+              </div>
+              <div style={{ fontSize: 10, color: amb, marginTop: 8 }}>
+                Current: {agentStats.recentSignals?.length || 0} signals tracked · {agentStats.recentSignals?.filter(s=>s.hitTarget||s.hitStop).length || 0} resolved
+              </div>
             </div>
           ) : (
             <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 8 }}>
