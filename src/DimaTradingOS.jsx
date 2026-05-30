@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback, Fragment } from 'react';
 import Chart from 'chart.js/auto';
+import { loadPositions, loadClosedTrades, syncPositions, syncClosedTrades, loadSettings, saveSetting } from './api/tradeApi';
 import {
   calculateCalibration, generateRankReport,
   calculateTradeScore, detectEmotional, getTradeR,
@@ -325,7 +326,7 @@ const DATA_VERSION = "2026-05-30-v4";  // deposits cleared, ACCOUNT=$14444 base
 export default function DimaTradingOS() {
   // ── state ──────────────────────────────────────────────────
   const [tab, setTab] = useState("dash");
-  // Simple reads — atomic version check above already cleared stale keys
+  // Load from localStorage immediately (fast, synchronous)
   const [positions, setPositions] = useState(() => {
     try { const s = localStorage.getItem("dima_p5"); return s ? JSON.parse(s) : DEFAULT_POS; }
     catch { return DEFAULT_POS; }
@@ -431,8 +432,37 @@ export default function DimaTradingOS() {
   // ── effects ────────────────────────────────────────────────
   useEffect(() => { const t = setInterval(() => setTime(getTime()), 1000); return () => clearInterval(t); }, []);
   useEffect(() => { fetchBTC(); const t = setInterval(fetchBTC, 30000); return () => clearInterval(t); }, []);
+
+  // ── Startup: load from backend DB (source of truth after first sync) ─────────
+  useEffect(() => {
+    // Load positions from backend — if backend has data, use it (overrides localStorage)
+    loadPositions().then(data => {
+      if (Array.isArray(data) && data.length > 0) {
+        setPositions(data);
+        try { localStorage.setItem("dima_p5", JSON.stringify(data)); } catch {}
+        console.log('[DB] Loaded', data.length, 'positions from backend');
+      } else if (data && data.length === 0) {
+        // Backend is empty — seed it with current state
+        syncPositions(positions).catch(() => {});
+      }
+    }).catch(() => {}); // backend offline — localStorage already loaded
+
+    loadClosedTrades().then(data => {
+      if (Array.isArray(data) && data.length > 0) {
+        setClosed(data);
+        try { localStorage.setItem("dima_c5", JSON.stringify(data)); } catch {}
+        console.log('[DB] Loaded', data.length, 'closed trades from backend');
+      } else if (data && data.length === 0) {
+        syncClosedTrades(closed).catch(() => {});
+      }
+    }).catch(() => {});
+  }, []); // runs once on mount
+  // Save to localStorage (fast, local cache)
   useEffect(() => { try { localStorage.setItem("dima_p5", JSON.stringify(positions)); } catch {} }, [positions]);
   useEffect(() => { try { localStorage.setItem("dima_c5", JSON.stringify(closed)); } catch {} }, [closed]);
+  // Sync to backend (persistent database) — fire-and-forget, won't block UI
+  useEffect(() => { syncPositions(positions).catch(() => {}); }, [positions]);
+  useEffect(() => { syncClosedTrades(closed).catch(() => {}); }, [closed]);
   useEffect(() => {
     if (tab === "stats") {
       setTimeout(buildCharts, 120);
