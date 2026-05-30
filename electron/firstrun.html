@@ -10,12 +10,8 @@
       background:#0d1117;
       color:#c9d1d9;
       font-family:'SF Mono','Fira Code',monospace;
-      display:flex;
-      align-items:center;
-      justify-content:center;
       height:100vh;
       overflow:hidden;
-      /* Allow dragging the borderless window by dragging anywhere on body */
       -webkit-app-region: drag;
     }
 
@@ -39,10 +35,12 @@
 
     .card {
       background:#161b22;
-      border:1px solid #30363d;
-      border-radius:14px;
+      border:none;
+      border-radius:0;
       padding:32px 36px 28px;
-      width:440px;
+      width:100%;
+      height:100vh;
+      overflow-y:auto;
       -webkit-app-region: no-drag;
     }
 
