@@ -422,6 +422,7 @@ export default function DimaTradingOS() {
   const [apiKey,       setApiKey]       = useState(()=>{try{return localStorage.getItem("dima_key")||"";}catch{return "";}});
   const [keyInput,     setKeyInput]     = useState("");
   const [showSettings, setShowSettings] = useState(false);
+  const [username,     setUsername]     = useState(()=>{try{return localStorage.getItem("dima_username")||"Dima";}catch{return "Dima";}});
   // Chat state
   // Chat history — persisted to localStorage so diary sees conversations after restart
   const [chatMessages, setChatMessages] = useState(() => {
@@ -449,6 +450,16 @@ export default function DimaTradingOS() {
 
   // Restore ELO calibration from backend if localStorage is empty (new machine / cleared cache)
   useEffect(() => {
+    // Load username from backend (set during first-run setup)
+    fetch('http://localhost:3000/api/trades/settings/username')
+      .then(r => r.json())
+      .then(d => {
+        if (d.value) {
+          setUsername(d.value);
+          try { localStorage.setItem("dima_username", d.value); } catch {}
+        }
+      }).catch(() => {});
+
     if (calibration) return; // already loaded from localStorage
     fetch('http://localhost:3000/api/trades/settings/elo_calibration')
       .then(r => r.json())
@@ -1184,7 +1195,7 @@ CURRENT DATE & TIME:
 🇺🇸 New York: ${nyTime}
 📈 US Market: ${marketStatus}
 
-WHO IS DIMA: Israeli trader, 31, Netanya. Construction PM. $${(ACCOUNT + totalDeposits).toLocaleString()} account + ₪2,000/month contributions. Goal: $1M in 15 years at 30% annual. Top 10-15% retail.
+WHO IS ${username.toUpperCase()}: Israeli trader, 31, Netanya. Construction PM. $${(ACCOUNT + totalDeposits).toLocaleString()} account + ₪2,000/month contributions. Goal: $1M in 15 years at 30% annual. Top 10-15% retail.
 
 THE 150 SMA SYSTEM (ONLY system he trades):
 1. 150 SMA must be RISING — declining SMA = NO entry, period
@@ -1510,7 +1521,7 @@ ${skillJournal ? `\nSKILL JOURNAL (Dima's own recorded lessons — reference the
 
       {/* NAV */}
       <div style={C.nav}>
-        <div style={C.logo}>DIMA // TRADING OS</div>
+        <div style={C.logo}>{username.toUpperCase()} // TRADING OS</div>
         <div style={{ display: "flex", gap: 3, overflowX: "auto", flexShrink: 1, minWidth: 0 }}>
           {[["dash","Dashboard"],["pos","Positions"],["stats","Statistics"],["hist","History"],["analytics","Analytics"],["chat","Chat"],["skills","Skills"],["agents","🤖 Agents"]].map(([id, label]) => (
             <button key={id} style={C.tab(tab === id)} onClick={() => setTab(id)}>{label}</button>
@@ -1681,6 +1692,25 @@ ${skillJournal ? `\nSKILL JOURNAL (Dima's own recorded lessons — reference the
                   <button onClick={()=>quickSend("What's hot in the market today? Top 3 momentum stocks with clear catalyst, volume confirmation, and 150 SMA setup. Filter out noise.")} style={{...C.btn(""),marginBottom:6,fontSize:11}}>🔥 What's hot ↗</button>
                   <button onClick={()=>quickSend("Give me my morning briefing. Analyze my open positions vs current market conditions and BTC price. What do I need to watch today?")} style={{...C.btn(""),marginBottom:6,fontSize:11}}>🌅 Morning briefing ↗</button>
                   <button onClick={()=>generateTradingDiary(journalMonth)} disabled={diaryLoading} style={{...C.btn("green"),marginBottom:0,fontSize:11,fontWeight:700,opacity:diaryLoading?0.6:1}}>📄 {diaryLoading?'Generating…':'Trading Diary (.docx)'}</button>
+                </div>
+                {/* Username */}
+                <div style={C.card}>
+                  <div style={{fontSize:9,fontWeight:700,color:txt3,textTransform:"uppercase",letterSpacing:"0.1em",marginBottom:6}}>👤 Name</div>
+                  <input
+                    value={username}
+                    onChange={e => {
+                      const v = e.target.value;
+                      setUsername(v);
+                      try { localStorage.setItem("dima_username", v); } catch {}
+                      fetch('http://localhost:3000/api/trades/settings/username', {
+                        method:'PUT', headers:{'Content-Type':'application/json'},
+                        body: JSON.stringify({ value: v }),
+                      }).catch(() => {});
+                    }}
+                    placeholder="Your name"
+                    style={{...C.fi, marginBottom: 0, fontSize: 11}}
+                  />
+                  <div style={{fontSize:9,color:txt3,marginTop:4}}>Shown in nav bar and system prompt</div>
                 </div>
                 {/* API Key compact */}
                 <div style={C.card}>

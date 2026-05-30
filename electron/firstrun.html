@@ -30,10 +30,10 @@
 <body>
   <div class="card">
     <h1>🚀 Welcome to Dima Trading OS</h1>
-    <p>First-time setup. Enter your details to get started. You can change these any time in the Dashboard.</p>
+    <p>First-time setup. Enter your details to get started. Account value is managed inside the Dashboard.</p>
 
-    <label>Account Value ($)</label>
-    <input type="number" id="account" placeholder="e.g. 14444" value=""/>
+    <label>Your Name</label>
+    <input type="text" id="username" placeholder="e.g. Dima" autocomplete="off"/>
 
     <label>Anthropic API Key</label>
     <input type="password" id="apikey" placeholder="sk-ant-api03-..."/>
@@ -51,11 +51,10 @@
 
   <script>
     function save() {
-      const account  = parseFloat(document.getElementById('account').value) || 0;
+      const username = document.getElementById('username').value.trim() || 'Trader';
       const apikey   = document.getElementById('apikey').value.trim();
       const telegram = document.getElementById('telegram').value.trim();
-      // Pass data to main process via window.location hash
-      window.location.hash = JSON.stringify({ account, apikey, telegram, setup: true });
+      window.location.hash = JSON.stringify({ username, apikey, telegram, setup: true });
     }
     function skip() {
       window.location.hash = JSON.stringify({ setup: true, skipped: true });

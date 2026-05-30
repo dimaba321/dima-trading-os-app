@@ -234,12 +234,20 @@ app.whenReady().then(async () => {
           markSetupComplete(data);
 
           // Save initial config to backend
+          const saves = [];
           if (data.apikey) {
-            await fetch(`http://localhost:${BACKEND_PORT}/api/trades/settings/api_key_hint`, {
+            saves.push(fetch(`http://localhost:${BACKEND_PORT}/api/trades/settings/api_key_hint`, {
               method:'PUT', headers:{'Content-Type':'application/json'},
               body: JSON.stringify({ value: data.apikey }),
-            }).catch(() => {});
+            }));
           }
+          if (data.username) {
+            saves.push(fetch(`http://localhost:${BACKEND_PORT}/api/trades/settings/username`, {
+              method:'PUT', headers:{'Content-Type':'application/json'},
+              body: JSON.stringify({ value: data.username }),
+            }));
+          }
+          await Promise.all(saves.map(p => p.catch(() => {})));
 
           setupWin.close();
           createWindow();
