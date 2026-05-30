@@ -1,49 +1,83 @@
 @echo off
 title Dima Trading OS — Build Installer
 cd /d "%~dp0"
+
+:: Read current version from package.json
+for /f "tokens=2 delims=:, " %%v in ('findstr /r "\"version\"" package.json') do (
+  set RAW_VER=%%v
+)
+set CURRENT_VER=%RAW_VER:"=%
+
 echo.
-echo ╔══════════════════════════════════════════════════╗
-echo ║   DIMA TRADING OS — Windows Installer Builder   ║
-echo ╚══════════════════════════════════════════════════╝
+echo ╔══════════════════════════════════════════════════════════╗
+echo ║        DIMA TRADING OS ^| Windows Installer Builder       ║
+echo ║                                                          ║
+echo ║   Current version: v%CURRENT_VER%                                ║
+echo ╚══════════════════════════════════════════════════════════╝
 echo.
-echo Choose build type:
-echo   [1] Personal build  — keeps your trades and positions
-echo   [2] Customer build  — clean slate, no personal data
-echo   [3] Exit
+echo   [1] Personal build   ^| keeps your trades and data
+echo   [2] Customer build   ^| clean slate, version auto-bumped
+echo   [3] Customer build   ^| clean slate, set version manually
+echo   [4] Exit
 echo.
-set /p choice="Enter 1, 2, or 3: "
+set /p choice="Enter 1, 2, 3 or 4: "
 
 if "%choice%"=="1" goto personal
-if "%choice%"=="2" goto customer
-if "%choice%"=="3" exit
-echo Invalid choice.
+if "%choice%"=="2" goto customer_auto
+if "%choice%"=="3" goto customer_manual
+if "%choice%"=="4" exit
+echo Invalid choice. Please enter 1, 2, 3 or 4.
+pause
 goto end
 
 :personal
 echo.
-echo Building PERSONAL installer...
+echo Building PERSONAL build ^(v%CURRENT_VER% — no version change^)...
+echo.
 set WIN_CSC_LINK=
 set CSC_IDENTITY_AUTO_DISCOVERY=false
 node scripts/build_installer.js
 goto end
 
-:customer
+:customer_auto
 echo.
-echo Building CUSTOMER installer (clean data)...
+echo Building CUSTOMER build ^(patch auto-bumped from v%CURRENT_VER%^)...
+echo.
 set WIN_CSC_LINK=
 set CSC_IDENTITY_AUTO_DISCOVERY=false
 node scripts/build_installer.js --clean
 goto end
 
+:customer_manual
+echo.
+set /p NEW_VER="Enter new version number (e.g. 1.2.0): "
+if "%NEW_VER%"=="" (
+  echo No version entered. Cancelled.
+  pause
+  goto end
+)
+echo.
+echo Building CUSTOMER build v%NEW_VER%...
+echo.
+set WIN_CSC_LINK=
+set CSC_IDENTITY_AUTO_DISCOVERY=false
+node scripts/build_installer.js --clean --ver %NEW_VER%
+goto end
+
 :end
 echo.
-if exist release\*.exe (
-  echo ✓ Installer is in the 'release\' folder.
+if exist CUSTOMER_BUILD\ (
+  echo +---------------------------------------------------------+
+  echo ^|  Customer builds: CUSTOMER_BUILD\                       ^|
+  echo ^|  Each version has its own folder with .exe + README.txt ^|
+  echo +---------------------------------------------------------+
   echo.
-  echo IMPORTANT: To install without errors, first enable:
-  echo   Windows Settings ^> Privacy ^& Security ^> For Developers ^> Developer Mode: ON
-  echo   Then run the .exe installer.
-) else (
-  echo Build may have failed. Check errors above.
 )
+if exist release\*.exe (
+  echo  Personal build: release\
+  echo.
+)
+echo  IMPORTANT: Enable Windows Developer Mode before installing.
+echo  Settings ^> Privacy ^& Security ^> For Developers ^> Developer Mode: ON
+echo.
 pause
