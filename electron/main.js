@@ -672,7 +672,7 @@ Format: plain text paragraphs, no bullet points, no markdown headers. Write like
         new Paragraph({
           alignment: AlignmentType.CENTER,
           spacing: { before: 400, after: 0 },
-          children: [new TextRun({ text: `— ${username.toUpperCase()} TRADING OS —`, size: 18, font: 'Arial', color: 'aaaaaa', italics: true })],
+          children: [new TextRun({ text: '— DIMA TRADING OS —', size: 18, font: 'Arial', color: 'aaaaaa', italics: true })],
         }),
       ],
     }],

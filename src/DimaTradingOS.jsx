@@ -1522,7 +1522,7 @@ ${skillJournal ? `\nSKILL JOURNAL (${username}'s own recorded lessons — refere
 
       {/* NAV */}
       <div style={C.nav}>
-        <div style={C.logo}>{username.toUpperCase()} // TRADING OS</div>
+        <div style={C.logo}>DIMA // TRADING OS</div>
         <div style={{ display: "flex", gap: 3, overflowX: "auto", flexShrink: 1, minWidth: 0 }}>
           {[["dash","Dashboard"],["pos","Positions"],["stats","Statistics"],["hist","History"],["analytics","Analytics"],["chat","Chat"],["skills","Skills"],["agents","🤖 Agents"]].map(([id, label]) => (
             <button key={id} style={C.tab(tab === id)} onClick={() => setTab(id)}>{label}</button>
