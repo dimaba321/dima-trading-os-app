@@ -309,7 +309,7 @@ ipcMain.handle('generate-diary', async (_, payload) => {
     HeadingLevel, AlignmentType, WidthType, BorderStyle, ShadingType,
   } = require('docx');
 
-  const { positions, closed, stats, eloRank, currentElo, calibration, month, apiKey, chatHistory = [] } = payload;
+  const { positions, closed, stats, eloRank, currentElo, calibration, month, username = 'Trader', apiKey, chatHistory = [] } = payload;
 
   // ── Helpers ────────────────────────────────────────────────────────────────
   const border = { style: BorderStyle.SINGLE, size: 1, color: 'CCCCCC' };
@@ -376,8 +376,8 @@ ipcMain.handle('generate-diary', async (_, payload) => {
         // Title
         new Paragraph({
           alignment: AlignmentType.CENTER,
-          spacing: { before: 0, after: 200 },
-          children: [new TextRun({ text: 'TRADING DIARY', bold: true, size: 52, font: 'Arial', color: '0d1117' })],
+          spacing: { before: 0, after: 80 },
+          children: [new TextRun({ text: username.toUpperCase() + ' — TRADING DIARY', bold: true, size: 52, font: 'Arial', color: '0d1117' })],
         }),
         new Paragraph({
           alignment: AlignmentType.CENTER,
@@ -593,7 +593,7 @@ ipcMain.handle('generate-diary', async (_, payload) => {
 
           const hasChatHistory = chatHistory.length > 0;
 
-          const prompt = `You are a professional trading psychologist reviewing a trader's diary for ${monthLabel}.
+          const prompt = `You are a professional trading psychologist reviewing ${username}'s trading diary for ${monthLabel}.
 
 TRADE DATA (${monthTrades.length} trades):
 ${tradeSummary}
@@ -672,14 +672,14 @@ Format: plain text paragraphs, no bullet points, no markdown headers. Write like
         new Paragraph({
           alignment: AlignmentType.CENTER,
           spacing: { before: 400, after: 0 },
-          children: [new TextRun({ text: '— DIMA TRADING OS —', size: 18, font: 'Arial', color: 'aaaaaa', italics: true })],
+          children: [new TextRun({ text: `— ${username.toUpperCase()} TRADING OS —`, size: 18, font: 'Arial', color: 'aaaaaa', italics: true })],
         }),
       ],
     }],
   });
 
   // ── Save dialog ────────────────────────────────────────────────────────────
-  const defaultName = `Trading_Diary_${month || 'AllTime'}.docx`;
+  const defaultName = `${username}_Trading_Diary_${month || 'AllTime'}.docx`;
   const { canceled, filePath } = await dialog.showSaveDialog(mainWindow, {
     title:       'Save Trading Diary',
     defaultPath: path.join(app.getPath('documents'), defaultName),

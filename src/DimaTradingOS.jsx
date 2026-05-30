@@ -896,7 +896,7 @@ Return exactly this JSON (no other text):
     const hotNames=(hotResult.hot||[]).map(h=>`${h.ticker} score:${h.score} — ${h.catalyst}`).join('\n')||'No hot names.';
     const posAlerts=(posResult.alerts||[]).join(', ')||'All positions healthy.';
 
-    const ceoPrompt = `You are the CEO AGENT — Dima's chief trading strategist. Today: ${new Date().toDateString()}.
+    const ceoPrompt = `You are the CEO AGENT — ${username}'s chief trading strategist. Today: ${new Date().toDateString()}.
 
 ═══ AGENT REPORTS ═══
 
@@ -932,7 +932,7 @@ Assess SPY vs 150 SMA. If SPY BELOW its 150 SMA:
 → Only PULLBACK/APPROACH setups allowed.
 
 STEP 4 — POSITION FILTER:
-Remove any ticker already in Dima's open positions.
+Remove any ticker already in ${username}'s open positions.
 
 STEP 5 — TRADE PLAN (for every Tier 1):
 entry = current price, stop = entry × 0.97, target = entry × 1.06 (2:1 R:R minimum)
@@ -946,7 +946,7 @@ If edge deteriorating → only "high" confidence trades qualify.
 First output this EXACT JSON (one line):
 {"alerts":[],"priority_trades":[{"ticker":"X","setup":"SMA_BOUNCE","action":"enter","confidence":"high","entry":0,"stop":0,"target":0,"score":0,"note":"reason"}],"market_summary":"SPY regime + BTC + theme","actions":["step 1","step 2"]}
 
-Then NEW LINE: write a direct 2-4 sentence debrief to Dima. Be honest. Name best opportunity or biggest risk.`;
+Then NEW LINE: write a direct 2-4 sentence debrief to ${username}. Be honest. Name best opportunity or biggest risk.`;
 
     try {
       // Use streaming proxy for CEO report — shows character-by-character
@@ -1079,7 +1079,8 @@ Then NEW LINE: write a direct 2-4 sentence debrief to Dima. Be honest. Name best
         eloRank,
         currentElo,
         calibration,
-        month:  month || journalMonth,
+        month:    month || journalMonth,
+        username: username || 'Trader',
         apiKey,
         // Pass the actual chat conversation from the Chat tab
         // Filter to meaningful exchanges (skip single-word messages)
@@ -1188,14 +1189,14 @@ Then NEW LINE: write a direct 2-4 sentence debrief to Dima. Be honest. Name best
       ? positions.map(p => `- ${p.ticker}: ${p.shares}sh @$${p.entry}, stop $${p.stop||'—'}, T1 $${p.t1||'—'}${p.pattern ? ` [${p.pattern}]` : ''}`).join('\n')
       : '- No open positions';
 
-    return `You are Dima's personal trading assistant — brutally honest, stone cold, no softening.
+    return `You are ${username}'s personal trading assistant — brutally honest, stone cold, no softening.
 
 CURRENT DATE & TIME:
 🇮🇱 Israel: ${ilTime}
 🇺🇸 New York: ${nyTime}
 📈 US Market: ${marketStatus}
 
-WHO IS ${username.toUpperCase()}: Israeli trader, 31, Netanya. Construction PM. $${(ACCOUNT + totalDeposits).toLocaleString()} account + ₪2,000/month contributions. Goal: $1M in 15 years at 30% annual. Top 10-15% retail.
+TRADER: ${username} | Account: $${(ACCOUNT + totalDeposits).toLocaleString()} | Swing trader using the 150 SMA system.
 
 THE 150 SMA SYSTEM (ONLY system he trades):
 1. 150 SMA must be RISING — declining SMA = NO entry, period
@@ -1241,7 +1242,7 @@ SKILLS YOU HAVE:
 - Stock scout (finding 150 SMA setups)
 - Psychology check (emotional trade detection)
 - Trading journal review
-${skillJournal ? `\nSKILL JOURNAL (Dima's own recorded lessons — reference these when relevant):\n${skillJournal.slice(0, 2000)}` : ''}`;
+${skillJournal ? `\nSKILL JOURNAL (${username}'s own recorded lessons — reference these when relevant):\n${skillJournal.slice(0, 2000)}` : ''}`;
   }
 
   // Quick-send to chat — used by Quick Actions buttons (auto-sends without user pressing Enter)
@@ -1256,7 +1257,7 @@ ${skillJournal ? `\nSKILL JOURNAL (Dima's own recorded lessons — reference the
     setChatLoading(true);
     try {
       let systemPrompt;
-      try { systemPrompt = buildSystemPrompt(); } catch { systemPrompt = 'You are Dima\'s trading assistant.'; }
+      try { systemPrompt = buildSystemPrompt(); } catch { systemPrompt = `You are ${username}'s trading assistant.`; }
       const resp = await fetch('http://localhost:3000/api/claude', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ apiKey, model: 'claude-sonnet-4-6', maxTokens: 2000,
@@ -1286,7 +1287,7 @@ ${skillJournal ? `\nSKILL JOURNAL (Dima's own recorded lessons — reference the
     try {
       let systemPrompt;
       try { systemPrompt = buildSystemPrompt(); }
-      catch(pe) { systemPrompt = 'You are Dima\'s trading assistant. Be honest and direct.'; console.error('[chat] buildSystemPrompt error:', pe); }
+      catch(pe) { systemPrompt = `You are ${username}'s trading assistant. Be honest and direct.`; console.error('[chat] buildSystemPrompt error:', pe); }
 
       // Route through local backend — avoids Electron browser security restrictions
       const resp = await fetch('http://localhost:3000/api/claude', {
@@ -3056,7 +3057,7 @@ ${skillJournal ? `\nSKILL JOURNAL (Dima's own recorded lessons — reference the
               {(agentReport.actions||["—"]).map((a,i)=><div key={i} style={{fontSize:11,color:txt2,marginBottom:3,paddingLeft:8,borderLeft:"2px solid #64b4ff"}}>· {a}</div>)}
             </div>
           </div>
-          {agentReport._raw&&(()=>{const parts=agentReport._raw.split(/\}\s*\n/);const msg=parts.slice(1).join('\n').trim();return msg?<div style={{background:bg3,borderRadius:6,padding:"10px 14px",fontSize:12,color:txt2,lineHeight:1.7,borderLeft:`3px solid ${amb}`}}><span style={{fontSize:10,fontWeight:700,color:amb,display:"block",marginBottom:4}}>CEO TO DIMA:</span>{msg}</div>:null;})()}
+          {agentReport._raw&&(()=>{const parts=agentReport._raw.split(/\}\s*\n/);const msg=parts.slice(1).join('\n').trim();return msg?<div style={{background:bg3,borderRadius:6,padding:"10px 14px",fontSize:12,color:txt2,lineHeight:1.7,borderLeft:`3px solid ${amb}`}}><span style={{fontSize:10,fontWeight:700,color:amb,display:"block",marginBottom:4}}>CEO TO {username.toUpperCase()}:</span>{msg}</div>:null;})()}
         </div>}
 
         {/* Performance Stats Card */}
