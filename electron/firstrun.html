@@ -13,167 +13,350 @@
       height:100vh;
       overflow:hidden;
       -webkit-app-region: drag;
+      user-select:none;
     }
 
-    /* Close button top-right */
     .close-btn {
-      position:fixed;
-      top:12px; right:14px;
-      width:24px; height:24px;
-      border-radius:50%;
-      background:rgba(248,81,73,0.15);
-      border:1px solid rgba(248,81,73,0.3);
-      color:#f85149;
-      font-size:14px;
-      line-height:24px;
-      text-align:center;
-      cursor:pointer;
-      -webkit-app-region: no-drag;
-      transition: background 0.15s;
+      position:fixed; top:12px; right:14px;
+      width:24px; height:24px; border-radius:50%;
+      background:rgba(248,81,73,0.15); border:1px solid rgba(248,81,73,0.3);
+      color:#f85149; font-size:13px; line-height:24px; text-align:center;
+      cursor:pointer; -webkit-app-region:no-drag; transition:background 0.15s;
     }
     .close-btn:hover { background:rgba(248,81,73,0.35); }
 
+    /* ── step indicator ── */
+    .steps {
+      display:flex; justify-content:center; align-items:center;
+      gap:6px; padding:20px 0 10px;
+      -webkit-app-region:no-drag;
+    }
+    .step-dot {
+      width:8px; height:8px; border-radius:50%;
+      background:#30363d; transition:all 0.25s;
+    }
+    .step-dot.active  { background:#3fb950; transform:scale(1.3); }
+    .step-dot.done    { background:rgba(63,185,80,0.4); }
+
+    /* ── card ── */
     .card {
-      background:#161b22;
-      border:none;
-      border-radius:0;
-      padding:32px 36px 28px;
-      width:100%;
-      height:100vh;
-      overflow-y:auto;
-      -webkit-app-region: no-drag;
+      background:#161b22; border:none; border-radius:0;
+      padding:16px 36px 28px; width:100%; height:calc(100vh - 58px);
+      overflow-y:auto; -webkit-app-region:no-drag;
     }
 
-    .logo-wrap {
-      display:flex;
-      justify-content:center;
-      margin-bottom:16px;
-    }
-    .logo-wrap img {
-      width:72px;
-      height:72px;
-      object-fit:contain;
-      border-radius:12px;
-    }
+    /* ── slide container ── */
+    .slides { position:relative; }
+    .slide  { display:none; }
+    .slide.active { display:block; animation:fadeIn 0.2s ease; }
+    @keyframes fadeIn { from{opacity:0;transform:translateY(6px)} to{opacity:1;transform:none} }
 
-    h1 {
-      font-size:20px;
-      color:#3fb950;
-      text-align:center;
-      margin-bottom:5px;
-      letter-spacing:0.02em;
+    /* ── logo ── */
+    .logo-wrap { display:flex; justify-content:center; margin:4px 0 14px; }
+    .logo-wrap img { width:64px; height:64px; object-fit:contain; border-radius:10px; }
+
+    /* ── typography ── */
+    h1 { font-size:19px; color:#3fb950; text-align:center; margin-bottom:5px; }
+    .sub { font-size:11px; color:#8b949e; text-align:center; line-height:1.6; margin-bottom:20px; }
+
+    .step-title {
+      font-size:13px; font-weight:700; color:#c9d1d9;
+      margin-bottom:4px; display:flex; align-items:center; gap:8px;
     }
-    p  {
-      font-size:11px;
-      color:#8b949e;
-      margin-bottom:24px;
-      line-height:1.6;
-      text-align:center;
+    .step-title .badge {
+      font-size:9px; padding:2px 6px; border-radius:4px; font-weight:700;
+      background:rgba(248,81,73,0.12); color:#f85149; border:1px solid rgba(248,81,73,0.25);
     }
-    label {
-      font-size:10px;
-      color:#8b949e;
-      text-transform:uppercase;
-      letter-spacing:.1em;
-      display:block;
-      margin-bottom:5px;
+    .step-title .badge.opt {
+      background:rgba(88,166,255,0.1); color:#58a6ff; border-color:rgba(88,166,255,0.25);
     }
+    .step-desc {
+      font-size:10px; color:#8b949e; margin-bottom:10px; line-height:1.6;
+    }
+    .step-desc a { color:#58a6ff; text-decoration:none; }
+    .step-desc a:hover { text-decoration:underline; }
+
+    /* ── inputs ── */
+    label { font-size:10px; color:#8b949e; text-transform:uppercase; letter-spacing:.1em; display:block; margin-bottom:4px; margin-top:12px; }
     input {
-      width:100%;
-      background:#1c2128;
-      border:1px solid #30363d;
-      color:#c9d1d9;
-      font-family:inherit;
-      font-size:13px;
-      padding:8px 12px;
-      border-radius:6px;
-      outline:none;
-      margin-bottom:14px;
-      -webkit-app-region: no-drag;
+      width:100%; background:#1c2128; border:1px solid #30363d; color:#c9d1d9;
+      font-family:inherit; font-size:12px; padding:8px 12px; border-radius:6px;
+      outline:none; user-select:text;
     }
     input:focus { border-color:#3fb950; }
 
-    .btn-primary {
-      width:100%;
-      background:#238636;
-      color:#fff;
-      border:none;
-      border-radius:8px;
-      padding:12px;
-      font-size:14px;
-      font-weight:700;
-      cursor:pointer;
-      font-family:inherit;
-      margin-top:6px;
-      -webkit-app-region: no-drag;
-      transition: background 0.15s;
+    /* ── how-to box ── */
+    .howto {
+      background:#0d1117; border:1px solid #21262d; border-radius:8px;
+      padding:12px 14px; margin-top:12px; font-size:10px; color:#8b949e; line-height:1.8;
     }
-    .btn-primary:hover { background:#2ea043; }
+    .howto strong { color:#c9d1d9; }
+    .howto a { color:#58a6ff; }
+    .howto ol { padding-left:14px; }
 
-    .btn-skip {
-      width:100%;
-      background:none;
-      color:#8b949e;
-      border:1px solid #30363d;
-      border-radius:8px;
-      padding:10px;
-      font-size:12px;
-      font-weight:400;
-      cursor:pointer;
-      font-family:inherit;
-      margin-top:8px;
-      -webkit-app-region: no-drag;
-      transition: color 0.15s;
+    /* ── skip link ── */
+    .skip-link {
+      font-size:10px; color:#484f58; text-align:center; margin-top:10px;
+      cursor:pointer; display:block;
     }
-    .btn-skip:hover { color:#c9d1d9; border-color:#484f58; }
+    .skip-link:hover { color:#8b949e; }
 
-    .note {
-      font-size:10px;
-      color:#484f58;
-      margin-top:14px;
-      line-height:1.6;
-      text-align:center;
+    /* ── buttons ── */
+    .btn-row { display:flex; gap:8px; margin-top:18px; }
+    .btn-back {
+      flex:0 0 80px; background:none; color:#8b949e; border:1px solid #30363d;
+      border-radius:8px; padding:10px; font-size:12px; cursor:pointer; font-family:inherit;
+      transition:color 0.15s;
     }
+    .btn-back:hover { color:#c9d1d9; }
+    .btn-next {
+      flex:1; background:#238636; color:#fff; border:none; border-radius:8px;
+      padding:11px; font-size:13px; font-weight:700; cursor:pointer; font-family:inherit;
+      transition:background 0.15s;
+    }
+    .btn-next:hover { background:#2ea043; }
+    .btn-next.finish { background:#1f6feb; }
+    .btn-next.finish:hover { background:#388bfd; }
+
+    /* ── done screen ── */
+    .done-list { list-style:none; margin-top:12px; }
+    .done-list li {
+      display:flex; align-items:center; gap:10px;
+      font-size:11px; padding:8px 10px; border-radius:6px; margin-bottom:5px;
+      background:#0d1117; border:1px solid #21262d;
+    }
+    .done-list .ic { font-size:14px; }
+    .note { font-size:10px; color:#484f58; text-align:center; margin-top:14px; line-height:1.6; }
   </style>
 </head>
 <body>
-  <div class="close-btn" onclick="window.close()" title="Close">✕</div>
+  <div class="close-btn" onclick="window.close()">✕</div>
+
+  <!-- Step dots -->
+  <div class="steps" id="stepDots"></div>
 
   <div class="card">
-    <!-- Logo -->
-    <div class="logo-wrap">
-      <img src="../public/dima_trading_os_icon_256.png" alt="Dima Trading OS"/>
-    </div>
+    <div class="slides">
 
-    <h1>Welcome to Dima Trading OS</h1>
-    <p>First-time setup. Account value is managed inside the Dashboard.</p>
+      <!-- ── STEP 1: Welcome ── -->
+      <div class="slide active" id="slide-0">
+        <div class="logo-wrap">
+          <img src="../public/dima_trading_os_icon_256.png" alt="Logo"/>
+        </div>
+        <h1>Welcome to Trading OS</h1>
+        <p class="sub">A professional desktop trading system with AI-powered agents,<br>live scanning, and ELO performance tracking.</p>
 
-    <label>Your Name</label>
-    <input type="text" id="username" placeholder="e.g. Dima" autocomplete="off"/>
+        <div style="margin-top:4px">
+          <label>Your Name</label>
+          <input type="text" id="username" placeholder="e.g. Dima" autocomplete="off"/>
+        </div>
 
-    <label>Anthropic API Key</label>
-    <input type="password" id="apikey" placeholder="sk-ant-api03-..."/>
+        <div class="howto" style="margin-top:14px">
+          <strong>What you'll set up in the next steps:</strong>
+          <ol style="margin-top:6px">
+            <li>Anthropic API key — powers the AI chat and CEO agent <span style="color:#f85149">(required)</span></li>
+            <li>Telegram bot — receive trade alerts on your phone <span style="color:#58a6ff">(optional)</span></li>
+            <li>NewsAPI key — live financial news for agents <span style="color:#58a6ff">(optional)</span></li>
+            <li>Finnhub key — earnings calendar data <span style="color:#58a6ff">(optional)</span></li>
+          </ol>
+        </div>
 
-    <label>Telegram Bot Token (optional)</label>
-    <input type="text" id="telegram" placeholder="Leave blank to set up later"/>
+        <div class="btn-row">
+          <button class="btn-next" onclick="next()">Get Started →</button>
+        </div>
+      </div>
 
-    <button class="btn-primary" onclick="save()">▶ Start Trading OS</button>
-    <button class="btn-skip"    onclick="skip()">Skip — set up later</button>
+      <!-- ── STEP 2: Anthropic ── -->
+      <div class="slide" id="slide-1">
+        <div class="step-title">
+          Anthropic API Key
+          <span class="badge">REQUIRED</span>
+        </div>
+        <p class="step-desc">
+          Powers the AI chat, CEO trading signals, and trading diary.<br>
+          Without this key the app works but AI features are disabled.
+        </p>
 
-    <div class="note">
-      Your data stays on this machine only.<br>API keys are stored in the app's local config file.
+        <label>API Key</label>
+        <input type="password" id="apikey" placeholder="sk-ant-api03-..."/>
+
+        <div class="howto">
+          <strong>How to get your free key:</strong>
+          <ol>
+            <li>Go to <a href="#" onclick="openLink('https://console.anthropic.com')">console.anthropic.com</a></li>
+            <li>Create an account (free)</li>
+            <li>Click <strong>API Keys</strong> → <strong>Create Key</strong></li>
+            <li>Copy and paste it above</li>
+          </ol>
+          <div style="margin-top:8px;color:#484f58">Cost: ~$0.01–0.10 per AI scan. $5 free credit on signup.</div>
+        </div>
+
+        <span class="skip-link" onclick="next()">Skip for now — set up later in Dashboard</span>
+        <div class="btn-row">
+          <button class="btn-back" onclick="prev()">← Back</button>
+          <button class="btn-next" onclick="next()">Next →</button>
+        </div>
+      </div>
+
+      <!-- ── STEP 3: Telegram ── -->
+      <div class="slide" id="slide-2">
+        <div class="step-title">
+          Telegram Bot
+          <span class="badge opt">OPTIONAL</span>
+        </div>
+        <p class="step-desc">
+          Get trade alerts and agent signals sent directly to your phone via Telegram.
+        </p>
+
+        <label>Bot Token</label>
+        <input type="text" id="telegram_token" placeholder="1234567890:AAHxxxxxx..."/>
+
+        <label>Your Chat ID</label>
+        <input type="text" id="telegram_chatid" placeholder="e.g. 123456789"/>
+
+        <div class="howto">
+          <strong>How to set up in 2 minutes:</strong>
+          <ol>
+            <li>Open Telegram → search <strong>@BotFather</strong></li>
+            <li>Send <strong>/newbot</strong> → choose a name → get your <strong>Bot Token</strong></li>
+            <li>Search <strong>@userinfobot</strong> → send any message → get your <strong>Chat ID</strong></li>
+            <li>Paste both above</li>
+          </ol>
+        </div>
+
+        <span class="skip-link" onclick="next()">Skip — I don't need phone alerts</span>
+        <div class="btn-row">
+          <button class="btn-back" onclick="prev()">← Back</button>
+          <button class="btn-next" onclick="next()">Next →</button>
+        </div>
+      </div>
+
+      <!-- ── STEP 4: NewsAPI + Finnhub ── -->
+      <div class="slide" id="slide-3">
+        <div class="step-title">
+          Data APIs
+          <span class="badge opt">OPTIONAL — FREE</span>
+        </div>
+        <p class="step-desc">
+          Used by the WhatsHot and Scout agents. Both are free tiers — no credit card needed.
+        </p>
+
+        <label>NewsAPI Key <span style="color:#484f58;font-size:9px">— newsapi.org (free)</span></label>
+        <input type="text" id="newsapi" placeholder="2b8dc48a..."/>
+
+        <label>Finnhub Key <span style="color:#484f58;font-size:9px">— finnhub.io (free)</span></label>
+        <input type="text" id="finnhub" placeholder="d8as0bhr..."/>
+
+        <div class="howto">
+          <strong>Get free keys (2 min each):</strong>
+          <ol>
+            <li><a href="#" onclick="openLink('https://newsapi.org/register')">newsapi.org/register</a> → copy API key</li>
+            <li><a href="#" onclick="openLink('https://finnhub.io/register')">finnhub.io/register</a> → copy API key</li>
+          </ol>
+          <div style="margin-top:6px;color:#484f58">Without these: agents still scan using Reddit and Yahoo Finance. News sentiment and earnings calendar are disabled.</div>
+        </div>
+
+        <span class="skip-link" onclick="next()">Skip — set up later</span>
+        <div class="btn-row">
+          <button class="btn-back" onclick="prev()">← Back</button>
+          <button class="btn-next" onclick="next()">Next →</button>
+        </div>
+      </div>
+
+      <!-- ── STEP 5: Done ── -->
+      <div class="slide" id="slide-4">
+        <div class="logo-wrap">
+          <img src="../public/dima_trading_os_icon_256.png" alt="Logo"/>
+        </div>
+        <h1 style="margin-bottom:8px">You're all set 🎯</h1>
+        <p class="sub">Here's what's configured:</p>
+
+        <ul class="done-list" id="doneList"></ul>
+
+        <div class="btn-row" style="margin-top:16px">
+          <button class="btn-next finish" onclick="finish()">▶ Launch Trading OS</button>
+        </div>
+        <div class="note">
+          All settings can be changed anytime in the Dashboard tab.<br>
+          Your data stays on this machine only.
+        </div>
+      </div>
+
     </div>
   </div>
 
   <script>
-    function save() {
-      const username = document.getElementById('username').value.trim() || 'Trader';
-      const apikey   = document.getElementById('apikey').value.trim();
-      const telegram = document.getElementById('telegram').value.trim();
-      window.location.hash = JSON.stringify({ username, apikey, telegram, setup: true });
+    const TOTAL = 5;
+    let current = 0;
+
+    // Build step dots
+    const dotsEl = document.getElementById('stepDots');
+    for (let i = 0; i < TOTAL; i++) {
+      const d = document.createElement('div');
+      d.className = 'step-dot' + (i === 0 ? ' active' : '');
+      d.id = 'dot-' + i;
+      dotsEl.appendChild(d);
     }
-    function skip() {
-      window.location.hash = JSON.stringify({ setup: true, skipped: true });
+
+    function updateDots() {
+      for (let i = 0; i < TOTAL; i++) {
+        const d = document.getElementById('dot-' + i);
+        d.className = 'step-dot' + (i === current ? ' active' : i < current ? ' done' : '');
+      }
+    }
+
+    function showSlide(n) {
+      document.querySelectorAll('.slide').forEach((s, i) => {
+        s.classList.toggle('active', i === n);
+      });
+      current = n;
+      updateDots();
+
+      // Build done list on last slide
+      if (n === TOTAL - 1) buildDoneList();
+    }
+
+    function next() { if (current < TOTAL - 1) showSlide(current + 1); }
+    function prev() { if (current > 0) showSlide(current - 1); }
+
+    function buildDoneList() {
+      const items = [
+        { label: 'Name',        val: val('username')      || '—',     icon: '👤' },
+        { label: 'Anthropic',   val: val('apikey')        ? '✓ Set'  : '✗ Not set — AI disabled', icon: '🤖', warn: !val('apikey') },
+        { label: 'Telegram',    val: val('telegram_token')? '✓ Set'  : 'Not set', icon: '📱' },
+        { label: 'NewsAPI',     val: val('newsapi')       ? '✓ Set'  : 'Not set', icon: '📰' },
+        { label: 'Finnhub',     val: val('finnhub')       ? '✓ Set'  : 'Not set', icon: '📅' },
+      ];
+      document.getElementById('doneList').innerHTML = items.map(it => `
+        <li>
+          <span class="ic">${it.icon}</span>
+          <span style="flex:1;color:#8b949e">${it.label}</span>
+          <span style="color:${it.warn ? '#f85149' : it.val.startsWith('✓') ? '#3fb950' : '#484f58'};font-size:10px">${it.val}</span>
+        </li>
+      `).join('');
+    }
+
+    function val(id) {
+      const el = document.getElementById(id);
+      return el ? el.value.trim() : '';
+    }
+
+    function finish() {
+      const data = {
+        setup:          true,
+        username:       val('username') || 'Trader',
+        apikey:         val('apikey'),
+        telegram:       val('telegram_token'),
+        telegram_chatid:val('telegram_chatid'),
+        newsapi:        val('newsapi'),
+        finnhub:        val('finnhub'),
+      };
+      window.location.hash = encodeURIComponent(JSON.stringify(data));
+    }
+
+    function openLink(url) {
+      // Electron will handle this via shell.openExternal
+      window.location.href = url;
     }
   </script>
 </body>

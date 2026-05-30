@@ -83,6 +83,14 @@ try {
   }
 }
 
+// ── Copy README into release folder alongside the installer ──────────────────
+const readmeSrc = path.join(ROOT, 'README.txt');
+const readmeDst = path.join(ROOT, 'release', 'README.txt');
+if (fs.existsSync(readmeSrc)) {
+  fs.copyFileSync(readmeSrc, readmeDst);
+  console.log('📄 README.txt copied to release folder');
+}
+
 // ── Summary ───────────────────────────────────────────────────────────────────
 const relDir = path.join(ROOT, 'release');
 if (fs.existsSync(relDir)) {

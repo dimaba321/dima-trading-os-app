@@ -222,25 +222,46 @@ app.whenReady().then(async () => {
     });
     setupWin.loadFile(path.join(__dirname, 'firstrun.html'));
 
+    // Open external links (API signup pages) in real browser, not Electron
+    setupWin.webContents.on('will-navigate', (event, url) => {
+      if (url.startsWith('http://') || url.startsWith('https://')) {
+        event.preventDefault();
+        shell.openExternal(url);
+      }
+    });
+
     // Poll for setup completion via URL hash
     const checkSetup = setInterval(async () => {
       try {
         const url = setupWin.webContents.getURL();
-        const hash = decodeURIComponent(url.split('#')[1] || '');
-        if (!hash) return;
+        const hashRaw = url.split('#')[1] || '';
+        if (!hashRaw) return;
+        const hash = decodeURIComponent(hashRaw);
         const data = JSON.parse(hash);
         if (data.setup) {
           clearInterval(checkSetup);
           markSetupComplete(data);
 
-          // Save initial config to backend
+          // Write .env file with all API keys the user entered
+          const envLines = [
+            `PORT=3000`,
+            `ANTHROPIC_API_KEY=${data.apikey || ''}`,
+            `TELEGRAM_BOT_TOKEN=${data.telegram || ''}`,
+            `TELEGRAM_CHAT_ID=${data.telegram_chatid || ''}`,
+            `NEWS_API_KEY=${data.newsapi || ''}`,
+            `FINNHUB_API_KEY=${data.finnhub || ''}`,
+            `ENABLE_SCOUT=true`,
+            `ENABLE_HOT=true`,
+            `ENABLE_CEO=true`,
+            `ENABLE_STATS=true`,
+            `LOG_LEVEL=info`,
+          ].join('\n');
+
+          const envPath = path.join(BACKEND_PATH, '..', '.env');
+          try { fs.writeFileSync(envPath, envLines, 'utf8'); } catch {}
+
+          // Also save username to backend settings
           const saves = [];
-          if (data.apikey) {
-            saves.push(fetch(`http://localhost:${BACKEND_PORT}/api/trades/settings/api_key_hint`, {
-              method:'PUT', headers:{'Content-Type':'application/json'},
-              body: JSON.stringify({ value: data.apikey }),
-            }));
-          }
           if (data.username) {
             saves.push(fetch(`http://localhost:${BACKEND_PORT}/api/trades/settings/username`, {
               method:'PUT', headers:{'Content-Type':'application/json'},
