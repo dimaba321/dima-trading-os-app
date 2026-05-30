@@ -1,6 +1,6 @@
 {
   "name": "dima-trading-os",
-  "version": "1.0.4",
+  "version": "1.0.5",
   "description": "Dima Trading OS — Desktop App",
   "main": "electron/main.js",
   "scripts": {
@@ -48,19 +48,14 @@
       "certificateSha1": null
     },
     "nsis": {
-      "oneClick": false,
+      "oneClick": true,
       "perMachine": false,
-      "allowToChangeInstallationDirectory": false,
       "installerIcon": "public/app.ico",
       "uninstallerIcon": "public/app.ico",
-      "installerSidebar": "build-resources/installer-sidebar.bmp",
-      "uninstallerSidebar": "build-resources/installer-sidebar.bmp",
       "createDesktopShortcut": true,
       "createStartMenuShortcut": true,
       "shortcutName": "Dima Trading OS",
-      "deleteAppDataOnUninstall": false,
-      "displayLanguageSelector": false,
-      "runAfterFinish": true
+      "deleteAppDataOnUninstall": false
     },
     "directories": {
       "buildResources": "build-resources",
