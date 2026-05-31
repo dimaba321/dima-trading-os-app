@@ -236,9 +236,9 @@ const C = {
   sl: { fontSize: 9, color: txt3, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 4 },
   sh: { display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 },
   stit: { fontSize: 9, fontWeight: 700, color: txt3, textTransform: "uppercase", letterSpacing: "0.1em" },
-  tbl: { width: "100%", borderCollapse: "collapse", fontSize: 11 },
-  th: { fontSize: 9, color: txt3, textTransform: "uppercase", padding: "4px 6px", textAlign: "left", borderBottom: `1px solid ${bdr}`, fontWeight: 500 },
-  td: { padding: "7px 6px", borderBottom: `1px solid ${bdr}` },
+  tbl: { width: "100%", borderCollapse: "collapse", fontSize: 10 },
+  th: { fontSize: 8, color: txt3, textTransform: "uppercase", padding: "3px 5px", textAlign: "left", borderBottom: `1px solid ${bdr}`, fontWeight: 500 },
+  td: { padding: "4px 5px", borderBottom: `1px solid ${bdr}` },
   fp: { background: bg2, border: `1px solid ${bdr}`, borderRadius: 8, padding: 12, marginBottom: 10 },
   fl: { fontSize: 9, color: txt3, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 3, display: "block" },
   fi: { width: "100%", background: bg3, border: `1px solid ${bdr2}`, color: txt, fontFamily: "inherit", fontSize: 11, padding: "6px 8px", borderRadius: 5, outline: "none", marginBottom: 5, boxSizing: "border-box" },
@@ -1846,11 +1846,11 @@ ${skillJournal ? `\nSKILL JOURNAL (${username}'s own recorded lessons — refere
 
         <div style={C.g2}>
           <div>
-            <div style={C.card}>
-              <div style={C.sh}>
+            <div style={{...C.card, padding:"8px 12px"}}>
+              <div style={{...C.sh, marginBottom:5}}>
                 <span style={C.stit}>Open positions</span>
                 <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
-                  <span style={{ fontSize: 10, color: txt3 }}>{positions.length} open</span>
+                  <span style={{ fontSize: 9, color: txt3 }}>{positions.length} open</span>
                   <PriceRefreshBtn />
                 </div>
               </div>
@@ -1863,7 +1863,7 @@ ${skillJournal ? `\nSKILL JOURNAL (${username}'s own recorded lessons — refere
                     const unr = getUnrealized(p);
                     return (
                       <tr key={p.id}>
-                        <td style={C.td}><span style={{ fontWeight: 700, fontSize: 12, color: txt }}>{p.ticker}</span><span style={{ display: "inline-block", fontSize: 8, padding: "1px 4px", borderRadius: 3, fontWeight: 700, marginLeft: 3, background: "rgba(63,185,80,0.15)", color: grn }}>L</span></td>
+                        <td style={C.td}><span style={{ fontWeight: 700, fontSize: 10, color: txt }}>{p.ticker}</span><span style={{ display: "inline-block", fontSize: 7, padding: "1px 3px", borderRadius: 3, fontWeight: 700, marginLeft: 2, background: "rgba(63,185,80,0.15)", color: grn }}>L</span></td>
                         <td style={{ ...C.td, color: txt2 }}>{p.shares}</td>
                         <td style={C.td}>${p.entry.toFixed(2)}</td>
                         <td style={{ ...C.td, color: red }}>${p.stop.toFixed(2)}</td>
@@ -1882,13 +1882,13 @@ ${skillJournal ? `\nSKILL JOURNAL (${username}'s own recorded lessons — refere
               </table>
             </div>
 
-            <div style={C.card}>
-              <div style={C.sh}><span style={C.stit}>BTC status</span></div>
-              <div style={{ display: "flex", gap: 20, alignItems: "center", flexWrap: "wrap" }}>
-                <div><div style={C.sl}>Price</div><div style={{ fontSize: 20, fontWeight: 700, color: btcCol }}>{btc.price ? "$" + btc.price.toLocaleString() : "—"}</div></div>
-                <div><div style={C.sl}>vs $79.5K rule</div><div style={{ fontSize: 11, fontWeight: 700, color: btcCol }}>{btc.price ? (btc.price >= 79500 ? "✓ ABOVE $79.5K" : "⚠ BELOW $79.5K") : "—"}</div></div>
-                <div><div style={C.sl}>Miners</div><div style={{ fontSize: 11, fontWeight: 700, color: btcCol }}>{btc.price ? (btc.price >= 79500 ? "HOLD" : "REDUCE") : "—"}</div></div>
-                <div><div style={C.sl}>Miner exposure</div><div style={{ fontSize: 11, fontWeight: 700, color: txt2 }}>{minerExposure > 0 ? "$" + minerExposure.toFixed(0) : "None"}</div></div>
+            <div style={{...C.card, padding:"8px 12px"}}>
+              <div style={{...C.sh, marginBottom:5}}><span style={C.stit}>BTC status</span></div>
+              <div style={{ display: "flex", gap: 16, alignItems: "center", flexWrap: "wrap" }}>
+                <div><div style={C.sl}>Price</div><div style={{ fontSize: 15, fontWeight: 700, color: btcCol }}>{btc.price ? "$" + btc.price.toLocaleString() : "—"}</div></div>
+                <div><div style={C.sl}>vs $79.5K rule</div><div style={{ fontSize: 10, fontWeight: 700, color: btcCol }}>{btc.price ? (btc.price >= 79500 ? "✓ ABOVE $79.5K" : "⚠ BELOW $79.5K") : "—"}</div></div>
+                <div><div style={C.sl}>Miners</div><div style={{ fontSize: 10, fontWeight: 700, color: btcCol }}>{btc.price ? (btc.price >= 79500 ? "HOLD" : "REDUCE") : "—"}</div></div>
+                <div><div style={C.sl}>Miner exposure</div><div style={{ fontSize: 10, fontWeight: 700, color: txt2 }}>{minerExposure > 0 ? "$" + minerExposure.toFixed(0) : "None"}</div></div>
               </div>
             </div>
           </div>
