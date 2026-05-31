@@ -86,6 +86,9 @@ function startBackend() {
     stdio: ['ignore', 'pipe', 'pipe'],
   });
 
+  // Force UTF-8 so emoji in log messages don't appear as garbage on Windows
+  backendProcess.stdout.setEncoding('utf8');
+  backendProcess.stderr.setEncoding('utf8');
   backendProcess.stdout.on('data', d => process.stdout.write('[backend] ' + d));
   backendProcess.stderr.on('data', d => process.stderr.write('[backend] ' + d));
 
