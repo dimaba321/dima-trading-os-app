@@ -213,12 +213,27 @@ app.whenReady().then(async () => {
   // First-run setup on clean install (no personal data mode)
   if (isFirstRun() && !isDev) {
     closeSplash();
+    // IPC handlers for setup wizard
+    ipcMain.handle('get-default-path', () => app.getPath('userData'));
+    ipcMain.handle('choose-data-path', async () => {
+      const { canceled, filePaths } = await dialog.showOpenDialog(setupWin, {
+        title:       'Choose Installation Folder',
+        buttonLabel: 'Select Folder',
+        properties:  ['openDirectory', 'createDirectory'],
+        defaultPath: app.getPath('userData'),
+      });
+      return canceled ? null : filePaths[0];
+    });
+
     const setupWin = new BrowserWindow({
-      width: 440, height: 560, resizable: false, frame: false,
+      width: 440, height: 600, resizable: false, frame: false,
       transparent: false,
       backgroundColor: '#0d1117',
       icon: path.join(__dirname, '..', 'public', 'dima_trading_os_icon_256.png'),
-      webPreferences: { contextIsolation: true },
+      webPreferences: {
+        contextIsolation: true,
+        preload: path.join(__dirname, 'firstrun-preload.js'),
+      },
     });
     setupWin.loadFile(path.join(__dirname, 'firstrun.html'));
 
@@ -266,6 +281,18 @@ app.whenReady().then(async () => {
             saves.push(fetch(`http://localhost:${BACKEND_PORT}/api/trades/settings/username`, {
               method:'PUT', headers:{'Content-Type':'application/json'},
               body: JSON.stringify({ value: data.username }),
+            }));
+          }
+          if (data.account_value && parseFloat(data.account_value) > 0) {
+            saves.push(fetch(`http://localhost:${BACKEND_PORT}/api/trades/settings/account_value`, {
+              method:'PUT', headers:{'Content-Type':'application/json'},
+              body: JSON.stringify({ value: data.account_value }),
+            }));
+          }
+          if (data.install_path) {
+            saves.push(fetch(`http://localhost:${BACKEND_PORT}/api/trades/settings/install_path`, {
+              method:'PUT', headers:{'Content-Type':'application/json'},
+              body: JSON.stringify({ value: data.install_path }),
             }));
           }
           await Promise.all(saves.map(p => p.catch(() => {})));

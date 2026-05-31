@@ -5,181 +5,139 @@
   <title>Dima Trading OS — Setup</title>
   <style>
     * { margin:0; padding:0; box-sizing:border-box; }
-
     body {
-      background:#0d1117;
-      color:#c9d1d9;
+      background:#0d1117; color:#c9d1d9;
       font-family:'SF Mono','Fira Code',monospace;
-      height:100vh;
-      overflow:hidden;
-      -webkit-app-region: drag;
-      user-select:none;
+      height:100vh; overflow:hidden;
+      -webkit-app-region:drag; user-select:none;
     }
-
     .close-btn {
       position:fixed; top:12px; right:14px;
       width:24px; height:24px; border-radius:50%;
       background:rgba(248,81,73,0.15); border:1px solid rgba(248,81,73,0.3);
       color:#f85149; font-size:13px; line-height:24px; text-align:center;
-      cursor:pointer; -webkit-app-region:no-drag; transition:background 0.15s;
+      cursor:pointer; -webkit-app-region:no-drag;
     }
     .close-btn:hover { background:rgba(248,81,73,0.35); }
-
-    /* ── step indicator ── */
     .steps {
       display:flex; justify-content:center; align-items:center;
-      gap:6px; padding:20px 0 10px;
-      -webkit-app-region:no-drag;
+      gap:6px; padding:14px 0 8px; -webkit-app-region:no-drag;
     }
-    .step-dot {
-      width:8px; height:8px; border-radius:50%;
-      background:#30363d; transition:all 0.25s;
-    }
-    .step-dot.active  { background:#3fb950; transform:scale(1.3); }
-    .step-dot.done    { background:rgba(63,185,80,0.4); }
-
-    /* ── card ── */
+    .step-dot { width:8px; height:8px; border-radius:50%; background:#30363d; transition:all 0.25s; }
+    .step-dot.active { background:#3fb950; transform:scale(1.3); }
+    .step-dot.done   { background:rgba(63,185,80,0.4); }
     .card {
-      background:#161b22; border:none; border-radius:0;
-      padding:16px 36px 28px; width:100%; height:calc(100vh - 58px);
-      overflow-y:auto; -webkit-app-region:no-drag;
+      background:#161b22; padding:12px 34px 22px; width:100%;
+      height:calc(100vh - 50px); overflow-y:auto; -webkit-app-region:no-drag;
     }
-
-    /* ── slide container ── */
-    .slides { position:relative; }
-    .slide  { display:none; }
+    .slide { display:none; }
     .slide.active { display:block; animation:fadeIn 0.2s ease; }
-    @keyframes fadeIn { from{opacity:0;transform:translateY(6px)} to{opacity:1;transform:none} }
-
-    /* ── logo ── */
-    .logo-wrap { display:flex; justify-content:center; margin:4px 0 14px; }
-    .logo-wrap img { width:64px; height:64px; object-fit:contain; border-radius:10px; }
-
-    /* ── typography ── */
-    h1 { font-size:19px; color:#3fb950; text-align:center; margin-bottom:5px; }
-    .sub { font-size:11px; color:#8b949e; text-align:center; line-height:1.6; margin-bottom:20px; }
-
-    .step-title {
-      font-size:13px; font-weight:700; color:#c9d1d9;
-      margin-bottom:4px; display:flex; align-items:center; gap:8px;
-    }
-    .step-title .badge {
-      font-size:9px; padding:2px 6px; border-radius:4px; font-weight:700;
-      background:rgba(248,81,73,0.12); color:#f85149; border:1px solid rgba(248,81,73,0.25);
-    }
-    .step-title .badge.opt {
-      background:rgba(88,166,255,0.1); color:#58a6ff; border-color:rgba(88,166,255,0.25);
-    }
-    .step-desc {
-      font-size:10px; color:#8b949e; margin-bottom:10px; line-height:1.6;
-    }
+    @keyframes fadeIn { from{opacity:0;transform:translateY(5px)} to{opacity:1;transform:none} }
+    .logo-wrap { display:flex; justify-content:center; margin:4px 0 10px; }
+    .logo-wrap img { width:54px; height:54px; object-fit:contain; border-radius:10px; }
+    h1 { font-size:17px; color:#3fb950; text-align:center; margin-bottom:4px; }
+    .sub { font-size:10px; color:#8b949e; text-align:center; line-height:1.6; margin-bottom:14px; }
+    .step-title { font-size:13px; font-weight:700; color:#c9d1d9; margin-bottom:4px; display:flex; align-items:center; gap:8px; }
+    .badge { font-size:9px; padding:2px 6px; border-radius:4px; font-weight:700; background:rgba(248,81,73,0.12); color:#f85149; border:1px solid rgba(248,81,73,0.25); }
+    .badge.opt { background:rgba(88,166,255,0.1); color:#58a6ff; border-color:rgba(88,166,255,0.25); }
+    .step-desc { font-size:10px; color:#8b949e; margin-bottom:8px; line-height:1.6; }
     .step-desc a { color:#58a6ff; text-decoration:none; }
-    .step-desc a:hover { text-decoration:underline; }
-
-    /* ── inputs ── */
-    label { font-size:10px; color:#8b949e; text-transform:uppercase; letter-spacing:.1em; display:block; margin-bottom:4px; margin-top:12px; }
-    input {
+    label { font-size:10px; color:#8b949e; text-transform:uppercase; letter-spacing:.1em; display:block; margin-bottom:3px; margin-top:10px; }
+    input[type=text], input[type=password], input[type=number] {
       width:100%; background:#1c2128; border:1px solid #30363d; color:#c9d1d9;
-      font-family:inherit; font-size:12px; padding:8px 12px; border-radius:6px;
+      font-family:inherit; font-size:12px; padding:7px 11px; border-radius:6px;
       outline:none; user-select:text;
     }
     input:focus { border-color:#3fb950; }
-
-    /* ── how-to box ── */
+    .path-row { display:flex; gap:6px; margin-top:3px; }
+    .path-row input { flex:1; font-size:10px; color:#8b949e; }
+    .browse-btn {
+      background:#21262d; border:1px solid #30363d; color:#c9d1d9;
+      border-radius:6px; padding:0 12px; font-size:11px; cursor:pointer;
+      font-family:inherit; white-space:nowrap; -webkit-app-region:no-drag;
+    }
+    .browse-btn:hover { background:#30363d; }
     .howto {
-      background:#0d1117; border:1px solid #21262d; border-radius:8px;
-      padding:12px 14px; margin-top:12px; font-size:10px; color:#8b949e; line-height:1.8;
+      background:#0d1117; border:1px solid #21262d; border-radius:7px;
+      padding:9px 13px; margin-top:9px; font-size:10px; color:#8b949e; line-height:1.8;
     }
     .howto strong { color:#c9d1d9; }
     .howto a { color:#58a6ff; }
     .howto ol { padding-left:14px; }
-
-    /* ── skip link ── */
-    .skip-link {
-      font-size:10px; color:#484f58; text-align:center; margin-top:10px;
-      cursor:pointer; display:block;
-    }
+    .skip-link { font-size:10px; color:#484f58; text-align:center; margin-top:7px; cursor:pointer; display:block; }
     .skip-link:hover { color:#8b949e; }
-
-    /* ── buttons ── */
-    .btn-row { display:flex; gap:8px; margin-top:18px; }
-    .btn-back {
-      flex:0 0 80px; background:none; color:#8b949e; border:1px solid #30363d;
-      border-radius:8px; padding:10px; font-size:12px; cursor:pointer; font-family:inherit;
-      transition:color 0.15s;
-    }
+    .btn-row { display:flex; gap:8px; margin-top:12px; }
+    .btn-back { flex:0 0 78px; background:none; color:#8b949e; border:1px solid #30363d; border-radius:8px; padding:9px; font-size:12px; cursor:pointer; font-family:inherit; }
     .btn-back:hover { color:#c9d1d9; }
-    .btn-next {
-      flex:1; background:#238636; color:#fff; border:none; border-radius:8px;
-      padding:11px; font-size:13px; font-weight:700; cursor:pointer; font-family:inherit;
-      transition:background 0.15s;
-    }
+    .btn-next { flex:1; background:#238636; color:#fff; border:none; border-radius:8px; padding:10px; font-size:13px; font-weight:700; cursor:pointer; font-family:inherit; }
     .btn-next:hover { background:#2ea043; }
     .btn-next.finish { background:#1f6feb; }
     .btn-next.finish:hover { background:#388bfd; }
-
-    /* ── done screen ── */
-    .done-list { list-style:none; margin-top:12px; }
-    .done-list li {
-      display:flex; align-items:center; gap:10px;
-      font-size:11px; padding:8px 10px; border-radius:6px; margin-bottom:5px;
-      background:#0d1117; border:1px solid #21262d;
-    }
-    .done-list .ic { font-size:14px; }
-    .note { font-size:10px; color:#484f58; text-align:center; margin-top:14px; line-height:1.6; }
+    .done-list { list-style:none; margin-top:8px; }
+    .done-list li { display:flex; align-items:center; gap:10px; font-size:11px; padding:6px 10px; border-radius:6px; margin-bottom:4px; background:#0d1117; border:1px solid #21262d; }
+    .done-list .ic { font-size:13px; }
+    .note { font-size:10px; color:#484f58; text-align:center; margin-top:10px; line-height:1.6; }
   </style>
 </head>
 <body>
   <div class="close-btn" onclick="window.close()">✕</div>
-
-  <!-- Step dots -->
   <div class="steps" id="stepDots"></div>
-
   <div class="card">
     <div class="slides">
 
-      <!-- ── STEP 1: Welcome ── -->
+      <!-- STEP 1: Welcome + Name -->
       <div class="slide active" id="slide-0">
-        <div class="logo-wrap">
-          <img src="../public/dima_trading_os_icon_256.png" alt="Logo"/>
-        </div>
+        <div class="logo-wrap"><img src="../public/dima_trading_os_icon_256.png" alt="Logo"/></div>
         <h1>Welcome to Trading OS</h1>
-        <p class="sub">A professional desktop trading system with AI-powered agents,<br>live scanning, and ELO performance tracking.</p>
-
-        <div style="margin-top:4px">
-          <label>Your Name</label>
-          <input type="text" id="username" placeholder="e.g. Dima" autocomplete="off"/>
-        </div>
-
-        <div class="howto" style="margin-top:14px">
-          <strong>What you'll set up in the next steps:</strong>
-          <ol style="margin-top:6px">
-            <li>Anthropic API key — powers the AI chat and CEO agent <span style="color:#f85149">(required)</span></li>
-            <li>Telegram bot — receive trade alerts on your phone <span style="color:#58a6ff">(optional)</span></li>
-            <li>NewsAPI key — live financial news for agents <span style="color:#58a6ff">(optional)</span></li>
-            <li>Finnhub key — earnings calendar data <span style="color:#58a6ff">(optional)</span></li>
+        <p class="sub">Professional desktop trading with AI agents,<br>live scanning, and ELO performance tracking.</p>
+        <label>Your Name</label>
+        <input type="text" id="username" placeholder="e.g. Dima" autocomplete="off"/>
+        <div class="howto" style="margin-top:10px">
+          <strong>Next steps:</strong>
+          <ol style="margin-top:4px">
+            <li>Choose where to install the app data</li>
+            <li>Anthropic API key — AI features <span style="color:#f85149">(required)</span></li>
+            <li>Telegram bot — phone alerts <span style="color:#58a6ff">(optional)</span></li>
+            <li>NewsAPI + Finnhub — news &amp; earnings <span style="color:#58a6ff">(optional)</span></li>
           </ol>
         </div>
-
         <div class="btn-row">
           <button class="btn-next" onclick="next()">Get Started →</button>
         </div>
       </div>
 
-      <!-- ── STEP 2: Anthropic ── -->
+      <!-- STEP 2: Installation Path -->
       <div class="slide" id="slide-1">
-        <div class="step-title">
-          Anthropic API Key
-          <span class="badge">REQUIRED</span>
-        </div>
+        <div class="step-title">Installation Path <span class="badge" style="background:rgba(63,185,80,0.1);color:#3fb950;border-color:rgba(63,185,80,0.3)">DATA FOLDER</span></div>
         <p class="step-desc">
-          Powers the AI chat, CEO trading signals, and trading diary.<br>
-          Without this key the app works but AI features are disabled.
+          Choose where your trades, settings, and database will be stored.<br>
+          Default is your user data folder. You can pick a custom location (e.g. a cloud-synced folder).
         </p>
+        <label>Data Folder</label>
+        <div class="path-row">
+          <input type="text" id="install_path" placeholder="Loading default path..." readonly/>
+          <button class="browse-btn" onclick="pickFolder()">📂 Browse</button>
+        </div>
+        <div class="howto" style="margin-top:10px">
+          <strong>Tips:</strong>
+          <ol>
+            <li>Default location is fine for most users</li>
+            <li>Choose a cloud folder (OneDrive, Dropbox) to sync trades across machines</li>
+            <li>You can always find your data later in the Dashboard → Support info</li>
+          </ol>
+        </div>
+        <div class="btn-row">
+          <button class="btn-back" onclick="prev()">← Back</button>
+          <button class="btn-next" onclick="next()">Next →</button>
+        </div>
+      </div>
 
+      <!-- STEP 3: Anthropic -->
+      <div class="slide" id="slide-2">
+        <div class="step-title">Anthropic API Key <span class="badge">REQUIRED</span></div>
+        <p class="step-desc">Powers AI chat, CEO trading signals, and trading diary.<br>Without this key the app works but AI features are disabled.</p>
         <label>API Key</label>
         <input type="password" id="apikey" placeholder="sk-ant-api03-..."/>
-
         <div class="howto">
           <strong>How to get your free key:</strong>
           <ol>
@@ -188,9 +146,8 @@
             <li>Click <strong>API Keys</strong> → <strong>Create Key</strong></li>
             <li>Copy and paste it above</li>
           </ol>
-          <div style="margin-top:8px;color:#484f58">Cost: ~$0.01–0.10 per AI scan. $5 free credit on signup.</div>
+          <div style="margin-top:6px;color:#484f58">Cost: ~$0.01–0.10 per AI scan. $5 free credit on signup.</div>
         </div>
-
         <span class="skip-link" onclick="next()">Skip for now — set up later in Dashboard</span>
         <div class="btn-row">
           <button class="btn-back" onclick="prev()">← Back</button>
@@ -198,32 +155,23 @@
         </div>
       </div>
 
-      <!-- ── STEP 3: Telegram ── -->
-      <div class="slide" id="slide-2">
-        <div class="step-title">
-          Telegram Bot
-          <span class="badge opt">OPTIONAL</span>
-        </div>
-        <p class="step-desc">
-          Get trade alerts and agent signals sent directly to your phone via Telegram.
-        </p>
-
+      <!-- STEP 4: Telegram -->
+      <div class="slide" id="slide-3">
+        <div class="step-title">Telegram Bot <span class="badge opt">OPTIONAL</span></div>
+        <p class="step-desc">Get trade alerts and agent signals sent directly to your phone.</p>
         <label>Bot Token</label>
         <input type="text" id="telegram_token" placeholder="1234567890:AAHxxxxxx..."/>
-
         <label>Your Chat ID</label>
         <input type="text" id="telegram_chatid" placeholder="e.g. 123456789"/>
-
         <div class="howto">
-          <strong>How to set up in 2 minutes:</strong>
+          <strong>Set up in 2 minutes:</strong>
           <ol>
             <li>Open Telegram → search <strong>@BotFather</strong></li>
-            <li>Send <strong>/newbot</strong> → choose a name → get your <strong>Bot Token</strong></li>
-            <li>Search <strong>@userinfobot</strong> → send any message → get your <strong>Chat ID</strong></li>
+            <li>Send <strong>/newbot</strong> → follow prompts → get <strong>Bot Token</strong></li>
+            <li>Search <strong>@userinfobot</strong> → send any message → get <strong>Chat ID</strong></li>
             <li>Paste both above</li>
           </ol>
         </div>
-
         <span class="skip-link" onclick="next()">Skip — I don't need phone alerts</span>
         <div class="btn-row">
           <button class="btn-back" onclick="prev()">← Back</button>
@@ -231,31 +179,22 @@
         </div>
       </div>
 
-      <!-- ── STEP 4: NewsAPI + Finnhub ── -->
-      <div class="slide" id="slide-3">
-        <div class="step-title">
-          Data APIs
-          <span class="badge opt">OPTIONAL — FREE</span>
-        </div>
-        <p class="step-desc">
-          Used by the WhatsHot and Scout agents. Both are free tiers — no credit card needed.
-        </p>
-
-        <label>NewsAPI Key <span style="color:#484f58;font-size:9px">— newsapi.org (free)</span></label>
+      <!-- STEP 5: NewsAPI + Finnhub -->
+      <div class="slide" id="slide-4">
+        <div class="step-title">Data APIs <span class="badge opt">OPTIONAL — FREE</span></div>
+        <p class="step-desc">Used by the WhatsHot and Scout agents. Both are free — no credit card needed.</p>
+        <label>NewsAPI Key <span style="color:#484f58;font-size:9px">— newsapi.org</span></label>
         <input type="text" id="newsapi" placeholder="2b8dc48a..."/>
-
-        <label>Finnhub Key <span style="color:#484f58;font-size:9px">— finnhub.io (free)</span></label>
+        <label>Finnhub Key <span style="color:#484f58;font-size:9px">— finnhub.io</span></label>
         <input type="text" id="finnhub" placeholder="d8as0bhr..."/>
-
         <div class="howto">
           <strong>Get free keys (2 min each):</strong>
           <ol>
             <li><a href="#" onclick="openLink('https://newsapi.org/register')">newsapi.org/register</a> → copy API key</li>
             <li><a href="#" onclick="openLink('https://finnhub.io/register')">finnhub.io/register</a> → copy API key</li>
           </ol>
-          <div style="margin-top:6px;color:#484f58">Without these: agents still scan using Reddit and Yahoo Finance. News sentiment and earnings calendar are disabled.</div>
+          <div style="margin-top:6px;color:#484f58">Without these: agents still scan Reddit + Yahoo Finance.</div>
         </div>
-
         <span class="skip-link" onclick="next()">Skip — set up later</span>
         <div class="btn-row">
           <button class="btn-back" onclick="prev()">← Back</button>
@@ -263,30 +202,24 @@
         </div>
       </div>
 
-      <!-- ── STEP 5: Done ── -->
-      <div class="slide" id="slide-4">
-        <div class="logo-wrap">
-          <img src="../public/dima_trading_os_icon_256.png" alt="Logo"/>
-        </div>
-        <h1 style="margin-bottom:8px">You're all set 🎯</h1>
-        <p class="sub">Here's what's configured:</p>
-
+      <!-- STEP 6: Summary -->
+      <div class="slide" id="slide-5">
+        <div class="logo-wrap"><img src="../public/dima_trading_os_icon_256.png" alt="Logo"/></div>
+        <h1 style="margin-bottom:5px">You're all set 🎯</h1>
+        <p class="sub">Configuration summary:</p>
         <ul class="done-list" id="doneList"></ul>
-
-        <div class="btn-row" style="margin-top:16px">
+        <div class="btn-row" style="margin-top:12px">
+          <button class="btn-back" onclick="prev()">← Back</button>
           <button class="btn-next finish" onclick="finish()">▶ Launch Trading OS</button>
         </div>
-        <div class="note">
-          All settings can be changed anytime in the Dashboard tab.<br>
-          Your data stays on this machine only.
-        </div>
+        <div class="note">All settings can be changed anytime in the Dashboard.<br>Your data stays on this machine only.</div>
       </div>
 
     </div>
   </div>
 
   <script>
-    const TOTAL = 5;
+    const TOTAL = 6;
     let current = 0;
 
     // Build step dots
@@ -298,6 +231,20 @@
       dotsEl.appendChild(d);
     }
 
+    // Load default path on start
+    window.addEventListener('DOMContentLoaded', async () => {
+      if (window.setup) {
+        const p = await window.setup.getDefaultPath();
+        if (p) document.getElementById('install_path').value = p;
+      }
+    });
+
+    async function pickFolder() {
+      if (!window.setup) return;
+      const p = await window.setup.choosePath();
+      if (p) document.getElementById('install_path').value = p;
+    }
+
     function updateDots() {
       for (let i = 0; i < TOTAL; i++) {
         const d = document.getElementById('dot-' + i);
@@ -306,13 +253,9 @@
     }
 
     function showSlide(n) {
-      document.querySelectorAll('.slide').forEach((s, i) => {
-        s.classList.toggle('active', i === n);
-      });
+      document.querySelectorAll('.slide').forEach((s, i) => s.classList.toggle('active', i === n));
       current = n;
       updateDots();
-
-      // Build done list on last slide
       if (n === TOTAL - 1) buildDoneList();
     }
 
@@ -320,18 +263,21 @@
     function prev() { if (current > 0) showSlide(current - 1); }
 
     function buildDoneList() {
+      const path = document.getElementById('install_path').value || '—';
+      const shortPath = path.length > 38 ? '...' + path.slice(-35) : path;
       const items = [
-        { label: 'Name',        val: val('username')      || '—',     icon: '👤' },
-        { label: 'Anthropic',   val: val('apikey')        ? '✓ Set'  : '✗ Not set — AI disabled', icon: '🤖', warn: !val('apikey') },
-        { label: 'Telegram',    val: val('telegram_token')? '✓ Set'  : 'Not set', icon: '📱' },
-        { label: 'NewsAPI',     val: val('newsapi')       ? '✓ Set'  : 'Not set', icon: '📰' },
-        { label: 'Finnhub',     val: val('finnhub')       ? '✓ Set'  : 'Not set', icon: '📅' },
+        { label:'Name',           val: val('username')       || '—',                              icon:'👤' },
+        { label:'Data folder',    val: shortPath,                                                  icon:'📂' },
+        { label:'Anthropic',      val: val('apikey')         ? '✓ Set' : '✗ Not set — AI disabled', icon:'🤖', warn: !val('apikey') },
+        { label:'Telegram',       val: val('telegram_token') ? '✓ Set' : 'Not set',               icon:'📱' },
+        { label:'NewsAPI',        val: val('newsapi')        ? '✓ Set' : 'Not set',               icon:'📰' },
+        { label:'Finnhub',        val: val('finnhub')        ? '✓ Set' : 'Not set',               icon:'📅' },
       ];
       document.getElementById('doneList').innerHTML = items.map(it => `
         <li>
           <span class="ic">${it.icon}</span>
-          <span style="flex:1;color:#8b949e">${it.label}</span>
-          <span style="color:${it.warn ? '#f85149' : it.val.startsWith('✓') ? '#3fb950' : '#484f58'};font-size:10px">${it.val}</span>
+          <span style="flex:1;color:#8b949e;font-size:10px">${it.label}</span>
+          <span style="color:${it.warn ? '#f85149' : it.val.startsWith('✓') ? '#3fb950' : '#8b949e'};font-size:10px">${it.val}</span>
         </li>
       `).join('');
     }
@@ -343,19 +289,19 @@
 
     function finish() {
       const data = {
-        setup:          true,
-        username:       val('username') || 'Trader',
-        apikey:         val('apikey'),
-        telegram:       val('telegram_token'),
-        telegram_chatid:val('telegram_chatid'),
-        newsapi:        val('newsapi'),
-        finnhub:        val('finnhub'),
+        setup:           true,
+        username:        val('username')       || 'Trader',
+        install_path:    val('install_path'),
+        apikey:          val('apikey'),
+        telegram:        val('telegram_token'),
+        telegram_chatid: val('telegram_chatid'),
+        newsapi:         val('newsapi'),
+        finnhub:         val('finnhub'),
       };
       window.location.hash = encodeURIComponent(JSON.stringify(data));
     }
 
     function openLink(url) {
-      // Electron will handle this via shell.openExternal
       window.location.href = url;
     }
   </script>
