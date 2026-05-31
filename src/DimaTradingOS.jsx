@@ -1664,7 +1664,7 @@ ${skillJournal ? `\nSKILL JOURNAL (${username}'s own recorded lessons — refere
             const zoneLbl = v==null?'—':v<=25?'EXTREME FEAR':v<=45?'FEAR':v<=55?'NEUTRAL':v<=75?'GREED':'EXTREME GREED';
             return <div style={{flex:1,minWidth:0}}>
               <div style={{fontSize:10,fontWeight:700,color:grn,textAlign:'center',letterSpacing:'0.15em',textTransform:'uppercase',marginBottom:4}}>{title}</div>
-              <svg viewBox="0 0 300 220" style={{width:'100%',display:'block'}}>
+              <svg viewBox="0 0 300 185" style={{width:'100%',maxHeight:160,display:'block'}}>
                 <defs>
                   {/* Full red→yellow→green gradient — same as reference SVG */}
                   <linearGradient id={`g${gId}`} x1="0%" y1="0%" x2="100%" y2="0%">
@@ -1719,7 +1719,7 @@ ${skillJournal ? `\nSKILL JOURNAL (${username}'s own recorded lessons — refere
           return (
             <div style={{display:"grid",gridTemplateColumns:"2fr 1fr",gap:10,marginBottom:10}}>
               {/* Speedometer gauges */}
-              <div style={{...C.card,display:"flex",gap:10}}>
+              <div style={{...C.card,display:"flex",gap:10,padding:"10px 14px"}}>
                 <SpeedometerGauge value={fearGreed?.score?Math.round(fearGreed.score):null} title="STOCK MARKET" gId="stock"/>
                 <div style={{width:1,background:bdr,flexShrink:0}}/>
                 <SpeedometerGauge value={fngCrypto?.value?parseInt(fngCrypto.value):null} title="₿ CRYPTO" gId="crypto"/>
