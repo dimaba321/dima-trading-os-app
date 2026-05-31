@@ -439,6 +439,11 @@ export default function DimaTradingOS() {
   const chatEndRef = React.useRef(null);
   // Deposit state (top-level — never inside IIFE)
   const [totalDeposits, setTotalDeposits] = useState(()=>{try{return parseFloat(localStorage.getItem("dima_deposits")||"0");}catch{return 0;}});
+  // Editable account value — user sets this to their actual broker balance
+  const [accountValue, setAccountValue] = useState(()=>{
+    try { return parseFloat(localStorage.getItem("dima_account_value")||String(ACCOUNT)); }
+    catch { return ACCOUNT; }
+  });
   const [showDeposit,   setShowDeposit]   = useState(false);
   const [depositNIS,    setDepositNIS]    = useState("2000");
   // Trading Diary
@@ -455,6 +460,19 @@ export default function DimaTradingOS() {
 
   // Restore ELO calibration from backend if localStorage is empty (new machine / cleared cache)
   useEffect(() => {
+    // Load account value from backend settings
+    fetch('http://localhost:3000/api/trades/settings/account_value')
+      .then(r => r.json())
+      .then(d => {
+        if (d.value) {
+          const v = parseFloat(d.value);
+          if (!isNaN(v) && v > 0) {
+            setAccountValue(v);
+            try { localStorage.setItem('dima_account_value', String(v)); } catch {}
+          }
+        }
+      }).catch(() => {});
+
     // Load username from backend (set during first-run setup)
     fetch('http://localhost:3000/api/trades/settings/username')
       .then(r => r.json())
@@ -1591,12 +1609,8 @@ ${skillJournal ? `\nSKILL JOURNAL (${username}'s own recorded lessons — refere
         {(()=>{
           const NIS_RATE    = 3.7;
           const depositUSD  = parseFloat((parseFloat(depositNIS||0)/NIS_RATE).toFixed(2));
-          // Total capital = starting amount + deposits + all realized P&L (updates live as you close positions)
-          // ACCOUNT = $14,444 already includes the 24 historical trades (BASELINE_PNL = ~$767)
-          // Any NEW closed trades beyond those 24 change the account value.
-          // Formula: $14,444 + deposits + (new P&L above baseline)
-          const newPnl      = parseFloat((stats.net - BASELINE_PNL).toFixed(2));
-          const baseCapital = parseFloat((ACCOUNT + totalDeposits + newPnl).toFixed(2));
+          // Account value = user-set broker balance + any deposits added via the deposit button
+          const baseCapital = parseFloat((accountValue + totalDeposits).toFixed(2));
           function confirmDeposit() {
             if(depositUSD<=0) return;
             const next=parseFloat((totalDeposits+depositUSD).toFixed(2));
@@ -1624,8 +1638,21 @@ ${skillJournal ? `\nSKILL JOURNAL (${username}'s own recorded lessons — refere
               <div style={C.stat}>
                 <div style={C.sl}>Account Value</div>
                 <div style={{fontSize:16,fontWeight:700,color:txt}}>${baseCapital.toLocaleString("en-US",{maximumFractionDigits:0})}</div>
-                <div style={{display:"flex",alignItems:"center",gap:6,marginTop:4,flexWrap:"wrap"}}>
-                  <span style={{fontSize:8,color:txt3}}>IBI portfolio</span>
+                <div style={{display:"flex",alignItems:"center",gap:4,marginTop:4,flexWrap:"wrap"}}>
+                  <input
+                    type="number"
+                    value={accountValue}
+                    onChange={e => {
+                      const v = parseFloat(e.target.value) || 0;
+                      setAccountValue(v);
+                      try { localStorage.setItem('dima_account_value', String(v)); } catch {}
+                      fetch('http://localhost:3000/api/trades/settings/account_value', {
+                        method:'PUT', headers:{'Content-Type':'application/json'},
+                        body: JSON.stringify({ value: String(v) }),
+                      }).catch(() => {});
+                    }}
+                    style={{width:80,fontSize:9,padding:"2px 5px",background:bg3,border:`1px solid ${bdr}`,color:txt2,borderRadius:4,fontFamily:"inherit"}}
+                  />
                   <button onClick={()=>setShowDeposit(true)} style={{fontSize:8,padding:"2px 7px",background:"rgba(63,185,80,0.1)",border:`1px solid rgba(63,185,80,0.3)`,color:grn,borderRadius:4,cursor:"pointer",fontFamily:"inherit"}}>+ Deposit ₪</button>
                 </div>
               </div>
