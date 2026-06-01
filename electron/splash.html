@@ -7,154 +7,65 @@
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
 
-    html {
+    html, body {
       width: 420px; height: 420px;
       border-radius: 28px;
       overflow: hidden;
       background: transparent;
-    }
-
-    body {
-      width: 420px; height: 420px;
-      border-radius: 28px;
-      overflow: hidden;
-      background: #07070d;
       font-family: 'JetBrains Mono', 'SF Mono', monospace;
       position: relative;
     }
 
-    /* ── ambient radial glows ── */
-    .glow-orange {
-      position: absolute;
-      width: 360px; height: 260px;
-      top: -80px; right: -60px;
-      background: radial-gradient(ellipse, rgba(255,107,0,0.18) 0%, transparent 70%);
-      pointer-events: none;
+    /* ── background layers container — gets the fade mask ── */
+    .splash-bg {
+      position: absolute; inset: 0;
+      border-radius: 28px;
+      overflow: hidden;
+      -webkit-mask-image: linear-gradient(
+        to bottom,
+        black 0%, black 70%,
+        rgba(0,0,0,0.6) 82%,
+        rgba(0,0,0,0.15) 93%,
+        transparent 100%
+      );
+      mask-image: linear-gradient(
+        to bottom,
+        black 0%, black 70%,
+        rgba(0,0,0,0.6) 82%,
+        rgba(0,0,0,0.15) 93%,
+        transparent 100%
+      );
     }
+
+    /* icon fills full frame — zoom 230% to crop black padding */
+    .icon-bg {
+      position: absolute; inset: 0;
+      background: url('../public/ICON.png') center 42% / 230% no-repeat;
+    }
+
+    /* cyan ambient glow */
     .glow-cyan {
       position: absolute;
       width: 300px; height: 200px;
       bottom: -40px; left: -40px;
-      background: radial-gradient(ellipse, rgba(0,229,255,0.10) 0%, transparent 70%);
+      background: radial-gradient(ellipse, rgba(0,229,255,0.08) 0%, transparent 70%);
       pointer-events: none;
     }
 
-    /* ── cyber grid overlay ── */
+    /* cyber grid overlay */
     .grid {
-      position: absolute;
-      inset: 0;
+      position: absolute; inset: 0;
       background-image:
         linear-gradient(rgba(0,229,255,0.04) 1px, transparent 1px),
         linear-gradient(90deg, rgba(0,229,255,0.04) 1px, transparent 1px);
       background-size: 44px 44px;
-      mask-image: radial-gradient(circle at 50% 50%, #000 30%, transparent 80%);
+      mask-image: radial-gradient(circle at 50% 30%, transparent 35%, #000 75%);
       pointer-events: none;
     }
 
-    /* ── full-screen icon background ── */
-    .icon-bg {
-      position: absolute;
-      inset: 0;
-      background: url('../public/ICON.png') center center / cover no-repeat;
-      border-radius: 28px;
-    }
-
-    /* ── content pinned to bottom ── */
-    .content {
-      position: absolute;
-      left: 0; right: 0; bottom: 32px;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-    }
-
-    .title {
-      font-family: 'Chakra Petch', monospace;
-      color: #e9e9f2;
-      font-size: 20px;
-      font-weight: 700;
-      letter-spacing: 0.18em;
-    }
-    .title .acc { color: #ff6b00; text-shadow: 0 0 14px rgba(255,107,0,0.7); }
-    .title .sep { color: #51516a; margin: 0 6px; }
-
-    .subtitle {
-      color: #8b8ba6;
-      font-size: 9px;
-      letter-spacing: 0.28em;
-      margin-top: 5px;
-      text-transform: uppercase;
-    }
-
-    /* ── progress bar ── */
-    .bar-wrap {
-      width: 240px;
-      height: 3px;
-      background: #25253a;
-      border-radius: 2px;
-      margin-top: 20px;
-      overflow: hidden;
-      position: relative;
-    }
-
-    .bar {
-      height: 100%;
-      background: linear-gradient(90deg, #ff6b00, #ffb800);
-      border-radius: 2px;
-      box-shadow: 0 0 10px rgba(255,107,0,0.8), 0 0 3px rgba(255,184,0,0.6);
-      animation: load 2.8s ease-in-out forwards;
-    }
-
-    /* sweep shimmer on bar */
-    .bar::after {
-      content: "";
-      position: absolute;
-      inset: 0;
-      background: linear-gradient(90deg, transparent, rgba(255,255,255,0.35), transparent);
-      animation: shimmer 1.2s ease-in-out infinite;
-    }
-
-    @keyframes load {
-      0%   { width: 0%; }
-      40%  { width: 45%; }
-      70%  { width: 75%; }
-      90%  { width: 92%; }
-      100% { width: 100%; }
-    }
-
-    @keyframes shimmer {
-      0%   { transform: translateX(-100%); }
-      100% { transform: translateX(400%); }
-    }
-
-    /* ── status text cycling ── */
-    .status {
-      color: #51516a;
-      font-size: 9px;
-      margin-top: 9px;
-      letter-spacing: 0.16em;
-      text-transform: uppercase;
-    }
-
-    /* ── version badge ── */
-    .version {
-      position: absolute;
-      top: 16px; right: 18px;
-      font-family: 'JetBrains Mono', monospace;
-      font-size: 8px;
-      color: #51516a;
-      border: 1px solid #25253a;
-      padding: 2px 6px;
-      border-radius: 2px;
-      letter-spacing: 0.1em;
-    }
-
-    /* ── scanlines ── */
+    /* scanlines */
     .scanlines {
-      position: absolute;
-      inset: 0;
-      pointer-events: none;
-      border-radius: 28px;
+      position: absolute; inset: 0; pointer-events: none;
       background: repeating-linear-gradient(
         to bottom,
         rgba(0,0,0,0) 0px, rgba(0,0,0,0) 2px,
@@ -162,15 +73,87 @@
       );
       opacity: 0.6;
     }
+
+    /* ── overlay elements — fully opaque, no mask ── */
+    .corner-tl {
+      position: absolute; top: 18px; left: 18px;
+      width: 18px; height: 18px;
+      border: 1.5px solid rgba(255,107,0,0.7);
+      border-right: none; border-bottom: none;
+    }
+
+    .version {
+      position: absolute; top: 14px; right: 18px;
+      font-size: 8px; color: #51516a;
+      border: 1px solid #25253a; padding: 2px 6px;
+      border-radius: 2px; letter-spacing: 0.1em;
+    }
+
+    /* ── content — solid, no fade ── */
+    .content {
+      position: absolute; left: 0; right: 0; bottom: 28px;
+      display: flex; flex-direction: column; align-items: center;
+    }
+
+    .title {
+      font-family: 'Chakra Petch', monospace;
+      color: #e9e9f2; font-size: 20px; font-weight: 700; letter-spacing: 0.18em;
+    }
+    .title .acc { color: #ff6b00; text-shadow: 0 0 14px rgba(255,107,0,0.7); }
+    .title .sep { color: #51516a; margin: 0 6px; }
+
+    .subtitle {
+      color: #8b8ba6; font-size: 9px;
+      letter-spacing: 0.28em; margin-top: 5px; text-transform: uppercase;
+    }
+
+    .bar-wrap {
+      width: 240px; height: 3px; background: #25253a;
+      border-radius: 2px; margin-top: 18px; overflow: hidden; position: relative;
+    }
+    .bar {
+      height: 100%;
+      background: linear-gradient(90deg, #ff6b00, #ffb800);
+      border-radius: 2px;
+      box-shadow: 0 0 10px rgba(255,107,0,0.8);
+      animation: load 2.8s ease-in-out forwards;
+    }
+    .bar::after {
+      content: "";
+      position: absolute; inset: 0;
+      background: linear-gradient(90deg, transparent, rgba(255,255,255,0.35), transparent);
+      animation: shimmer 1.2s ease-in-out infinite;
+    }
+
+    @keyframes load {
+      0%  { width: 0%; }
+      40% { width: 45%; }
+      70% { width: 75%; }
+      90% { width: 92%; }
+      100%{ width: 100%; }
+    }
+    @keyframes shimmer {
+      0%  { transform: translateX(-100%); }
+      100%{ transform: translateX(400%); }
+    }
+
+    .status {
+      color: #51516a; font-size: 9px;
+      margin-top: 9px; letter-spacing: 0.16em; text-transform: uppercase;
+    }
   </style>
 </head>
 <body>
-  <div class="icon-bg"></div>
-  <div class="glow-orange"></div>
-  <div class="glow-cyan"></div>
-  <div class="grid"></div>
-  <div class="scanlines"></div>
+  <!-- background: gets fade mask -->
+  <div class="splash-bg">
+    <div class="icon-bg"></div>
+    <div class="glow-cyan"></div>
+    <div class="grid"></div>
+    <div class="scanlines"></div>
+  </div>
 
+  <!-- foreground: fully solid, no mask -->
+  <div class="corner-tl"></div>
   <div class="version">v1.0.5</div>
 
   <div class="content">
@@ -185,20 +168,14 @@
   </div>
 
   <script>
-    const msgs = [
-      'Initializing...',
-      'Starting backend...',
-      'Loading agents...',
-      'Connecting data feeds...',
-      'Ready.',
-    ];
+    const msgs = ['Initializing...','Starting backend...','Loading agents...','Connecting data feeds...','Ready.'];
     let i = 0;
     const el = document.getElementById('status');
     const iv = setInterval(() => {
       i++;
       if (i >= msgs.length) { clearInterval(iv); return; }
       el.textContent = msgs[i];
-    }, 600);
+    }, 500);
   </script>
 </body>
 </html>

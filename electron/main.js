@@ -211,7 +211,12 @@ app.whenReady().then(async () => {
   createSplash();
   if (!isDev) startFileServer();
   startBackend();
-  await waitForBackend();
+  // Run backend health check + minimum splash time in parallel
+  // Splash shows for AT LEAST 2 seconds regardless of how fast backend starts
+  const [_] = await Promise.all([
+    waitForBackend(),
+    new Promise(r => setTimeout(r, 2000)),
+  ]);
 
   // First-run setup on clean install (no personal data mode)
   if (isFirstRun() && !isDev) {
