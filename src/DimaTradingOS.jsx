@@ -1891,27 +1891,27 @@ ${skillJournal ? `\nSKILL JOURNAL (${username}'s own recorded lessons — refere
         {/* ── Market Sentiment + Quick Actions ── */}
         {(()=>{
           return (
-            <div style={{display:"grid",gridTemplateColumns:"2fr 1fr",gap:10,marginBottom:10}}>
+            <div style={{display:"grid",gridTemplateColumns:"2fr 1fr",gap:10,marginBottom:10,maxHeight:230,overflow:"hidden"}}>
               {/* Speedometer gauges */}
-              <div style={{...C.card,display:"flex",gap:10,padding:"10px 14px",alignItems:"center",maxHeight:230,overflow:"hidden"}}>
+              <div style={{...C.card,display:"flex",gap:10,padding:"10px 14px",alignItems:"center",overflow:"hidden"}}>
                 <SpeedometerGauge value={fearGreed?.score?Math.round(fearGreed.score):null} title="STOCK MARKET" gId="stock"/>
                 <div style={{width:1,background:bdr,flexShrink:0}}/>
                 <SpeedometerGauge value={fngCrypto?.value?parseInt(fngCrypto.value):null} title="₿ CRYPTO" gId="crypto"/>
               </div>
 
               {/* Quick Actions + API Key sidebar */}
-              <div style={{display:"flex",flexDirection:"column",gap:8}}>
-                <div style={C.card}>
-                  <div style={{fontSize:9,fontWeight:700,color:txt3,textTransform:"uppercase",letterSpacing:"0.1em",marginBottom:8}}>QUICK ACTIONS</div>
-                  <button type="button" onClick={()=>setTab('pos')} style={{...C.btn("green"),marginBottom:6,fontSize:11,fontWeight:700}}>+ Add / Close Position</button>
-                  <button type="button" onClick={()=>setTab('stats')} style={{...C.btn(""),marginBottom:6,fontSize:11}}>Statistics &amp; Rank</button>
-                  <button type="button" onClick={()=>quickSend("What's hot in the market today? Top 3 momentum stocks with clear catalyst, volume confirmation, and 150 SMA setup. Filter out noise.")} style={{...C.btn(""),marginBottom:6,fontSize:11}}>Whats Hot ↗</button>
-                  <button type="button" onClick={()=>quickSend("Give me my morning briefing. Analyze my open positions vs current market conditions and BTC price. What do I need to watch today?")} style={{...C.btn(""),marginBottom:6,fontSize:11}}>Morning Briefing ↗</button>
-                  <button type="button" onClick={()=>generateTradingDiary(journalMonth)} disabled={diaryLoading} style={{...C.btn("green"),marginBottom:0,fontSize:11,fontWeight:700,opacity:diaryLoading?0.6:1}}>{diaryLoading?'Generating…':'Trading Diary (.docx)'}</button>
+              <div style={{display:"flex",flexDirection:"column",gap:6,overflow:"hidden"}}>
+                <div style={{...C.card,padding:"8px 12px"}}>
+                  <div style={{fontSize:9,fontWeight:700,color:txt3,textTransform:"uppercase",letterSpacing:"0.1em",marginBottom:6}}>QUICK ACTIONS</div>
+                  <button type="button" onClick={()=>setTab('pos')} style={{...C.btn("green"),marginBottom:4,fontSize:10,fontWeight:700,padding:"5px 10px"}}>+ Add / Close Position</button>
+                  <button type="button" onClick={()=>setTab('stats')} style={{...C.btn(""),marginBottom:4,fontSize:10,padding:"5px 10px"}}>Statistics &amp; Rank</button>
+                  <button type="button" onClick={()=>quickSend("What's hot in the market today? Top 3 momentum stocks with clear catalyst, volume confirmation, and 150 SMA setup. Filter out noise.")} style={{...C.btn(""),marginBottom:4,fontSize:10,padding:"5px 10px"}}>Whats Hot ↗</button>
+                  <button type="button" onClick={()=>quickSend("Give me my morning briefing. Analyze my open positions vs current market conditions and BTC price. What do I need to watch today?")} style={{...C.btn(""),marginBottom:4,fontSize:10,padding:"5px 10px"}}>Morning Briefing ↗</button>
+                  <button type="button" onClick={()=>generateTradingDiary(journalMonth)} disabled={diaryLoading} style={{...C.btn("green"),marginBottom:0,fontSize:10,fontWeight:700,padding:"5px 10px",opacity:diaryLoading?0.6:1}}>{diaryLoading?'Generating…':'Trading Diary (.docx)'}</button>
                 </div>
                 {/* Username */}
-                <div style={C.card}>
-                  <div style={{fontSize:9,fontWeight:700,color:txt3,textTransform:"uppercase",letterSpacing:"0.1em",marginBottom:6}}>👤 Name</div>
+                <div style={{...C.card,padding:"6px 12px"}}>
+                  <div style={{fontSize:9,fontWeight:700,color:txt3,textTransform:"uppercase",letterSpacing:"0.1em",marginBottom:4}}>👤 Name</div>
                   <input
                     value={username}
                     onChange={e => {
@@ -1948,23 +1948,23 @@ ${skillJournal ? `\nSKILL JOURNAL (${username}'s own recorded lessons — refere
                   </div>
 
                   {apiKeysOpen && <>
-                    <div style={{marginTop:10}}>
+                    <div style={{marginTop:6}}>
                       {[
-                        {key:"ANTHROPIC_API_KEY",  label:"Anthropic",       ph:"sk-ant-api03-...",    type:"password", req:true},
-                        {key:"TELEGRAM_BOT_TOKEN", label:"Telegram Token",  ph:"1234567890:AAHxxx...", type:"password"},
-                        {key:"TELEGRAM_CHAT_ID",   label:"Telegram Chat ID",ph:"123456789",            type:"text"},
-                        {key:"NEWS_API_KEY",        label:"NewsAPI",         ph:"2b8dc48a...",          type:"password"},
-                        {key:"FINNHUB_API_KEY",     label:"Finnhub",         ph:"d8as0bhr...",          type:"password"},
+                        {key:"ANTHROPIC_API_KEY",  label:"Anthropic",  ph:"sk-ant-api03-...",    type:"password", req:true},
+                        {key:"TELEGRAM_BOT_TOKEN", label:"TG Token",   ph:"1234567890:AAHxxx...", type:"password"},
+                        {key:"TELEGRAM_CHAT_ID",   label:"TG Chat ID", ph:"123456789",            type:"text"},
+                        {key:"NEWS_API_KEY",        label:"NewsAPI",    ph:"2b8dc48a...",          type:"password"},
+                        {key:"FINNHUB_API_KEY",     label:"Finnhub",    ph:"d8as0bhr...",          type:"password"},
                       ].map(f=>(
-                        <div key={f.key} style={{marginBottom:6}}>
-                          <div style={{fontSize:8,color:txt3,marginBottom:2}}>{f.label}{f.req&&<span style={{color:red}}> *</span>}</div>
+                        <div key={f.key} style={{marginBottom:4}}>
+                          <div style={{fontSize:8,color:txt3,marginBottom:1}}>{f.label}{f.req&&<span style={{color:red}}> *</span>}</div>
                           <input type={f.type} placeholder={f.ph} value={configInputs[f.key]}
                             onChange={e=>setConfigInputs(p=>({...p,[f.key]:e.target.value}))}
-                            style={{...C.fi,marginBottom:0,fontSize:10,padding:"5px 8px"}}/>
+                            style={{...C.fi,marginBottom:0,fontSize:9,padding:"3px 7px"}}/>
                         </div>
                       ))}
                       <button type="button" onClick={saveServerConfig} disabled={configSaving}
-                        style={{...C.btn(configSaved?"":"green"),marginTop:6,fontSize:10,fontWeight:700,opacity:configSaving?0.6:1}}>
+                        style={{...C.btn(configSaved?"":"green"),marginTop:4,fontSize:9,fontWeight:700,padding:"4px 8px",opacity:configSaving?0.6:1}}>
                         {configSaving?"Saving…":configSaved?"✓ Saved":"Save Keys → .env"}
                       </button>
                       {(serverConfig?.hasAnthropicKey||apiKey)&&(
