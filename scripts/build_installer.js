@@ -124,9 +124,13 @@ const env = {
 };
 
 try {
-  execSync('npx electron-builder --win --publish always', {
-    cwd: ROOT, stdio: 'inherit',
-    env: { ...env, GH_TOKEN: require('child_process').execSync('"C:/Program Files/GitHub CLI/gh.exe" auth token', { encoding:'utf8' }).trim() },
+  // Personal builds stay local — customer builds publish to GitHub for auto-update
+  const publishFlag = isClean ? 'always' : 'never';
+  const buildEnv = isClean
+    ? { ...env, GH_TOKEN: require('child_process').execSync('"C:/Program Files/GitHub CLI/gh.exe" auth token', { encoding:'utf8' }).trim() }
+    : env;
+  execSync(`npx electron-builder --win --publish ${publishFlag}`, {
+    cwd: ROOT, stdio: 'inherit', env: buildEnv,
   });
 } finally {
   // ── Step 4: Restore original source ──────────────────────────────────────
