@@ -1629,6 +1629,16 @@ ${skillJournal ? `\nSKILL JOURNAL (${username}'s own recorded lessons — refere
     setClosed(prev => [...prev, closedTrade]);
     if (!sc || parseFloat(sc) >= pos.shares) setPositions(prev => prev.filter(p => p.ticker !== ticker.toUpperCase()));
     else setPositions(prev => prev.map(p => p.ticker === ticker.toUpperCase() ? { ...p, shares: p.shares - parseFloat(sc) } : p));
+    // Update account value with P&L from this trade
+    setAccountValue(prev => {
+      const updated = parseFloat((prev + pnl).toFixed(2));
+      try { localStorage.setItem('dima_account_value', String(updated)); } catch {}
+      fetch('http://localhost:3000/api/trades/settings/account_value', {
+        method:'PUT', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({ value: String(updated) }),
+      }).catch(() => {});
+      return updated;
+    });
     // Reset close form + ELO flags
     setCf({ ticker: "", exit: "", shares: "" });
     setCfExec({ followedPlan:false, perfectEntry:false, cleanExit:false });
@@ -1865,10 +1875,11 @@ ${skillJournal ? `\nSKILL JOURNAL (${username}'s own recorded lessons — refere
                 <div style={{fontSize:22,fontWeight:800,color:txt,fontFamily:mono,lineHeight:1,marginTop:6}}>${baseCapital.toLocaleString("en-US",{maximumFractionDigits:0})}</div>
                 <div style={{display:"flex",alignItems:"center",gap:4,marginTop:6,flexWrap:"wrap"}}>
                   <input
-                    type="number"
+                    type="text"
+                    inputMode="numeric"
                     value={accountValue}
                     onChange={e => {
-                      const v = parseFloat(e.target.value) || 0;
+                      const v = parseFloat(e.target.value.replace(/[^0-9.]/g,'')) || 0;
                       setAccountValue(v);
                       try { localStorage.setItem('dima_account_value', String(v)); } catch {}
                       fetch('http://localhost:3000/api/trades/settings/account_value', {
@@ -1876,7 +1887,7 @@ ${skillJournal ? `\nSKILL JOURNAL (${username}'s own recorded lessons — refere
                         body: JSON.stringify({ value: String(v) }),
                       }).catch(() => {});
                     }}
-                    style={{width:80,fontSize:9,padding:"2px 5px",background:elevated,border:`1px solid ${bdr}`,color:txt2,borderRadius:3,fontFamily:mono}}
+                    style={{width:80,fontSize:9,padding:"2px 5px",background:elevated,border:`1px solid ${bdr}`,color:txt2,borderRadius:3,fontFamily:mono,outline:"none"}}
                   />
                   <button type="button" onClick={()=>setShowDeposit(true)} style={{fontSize:8,padding:"2px 7px",background:`rgba(20,241,149,0.08)`,border:`1px solid rgba(20,241,149,0.3)`,color:grn,borderRadius:3,cursor:"pointer",fontFamily:mono}}>+ Deposit ₪</button>
                 </div>
