@@ -209,8 +209,10 @@ try {
   if (exeFile) {
     const exePath = path.join(relDir, exeFile);
     console.log(`[5/5] Creating GitHub release ${tagName}...`);
+    const ghPath = fs.existsSync('C:/Program Files/GitHub CLI/gh.exe')
+      ? '"C:/Program Files/GitHub CLI/gh.exe"' : 'gh';
     execSync(
-      `gh release create ${tagName} "${exePath}" --title "Dima Trading OS ${tagName}" --notes "Release ${tagName}" --latest`,
+      `${ghPath} release create ${tagName} "${exePath}" --title "Dima Trading OS ${tagName}" --notes "Release ${tagName}" --latest`,
       { cwd: ROOT, stdio: 'inherit' }
     );
     console.log(`GitHub release ${tagName} created`);
