@@ -81,9 +81,10 @@ function startBackend() {
   console.log('[main] Starting backend:', BACKEND_PATH, `(attempt ${_respawnAttempts + 1})`);
 
   backendProcess = spawn('node', [BACKEND_PATH], {
-    cwd:   path.dirname(BACKEND_PATH),
-    env:   { ...process.env, PORT: String(BACKEND_PORT) },
-    stdio: ['ignore', 'pipe', 'pipe'],
+    cwd:         path.dirname(BACKEND_PATH),
+    env:         { ...process.env, PORT: String(BACKEND_PORT) },
+    stdio:       ['ignore', 'pipe', 'pipe'],
+    windowsHide: true,   // hide the CMD console window on Windows
   });
 
   // Force UTF-8 so emoji in log messages don't appear as garbage on Windows
