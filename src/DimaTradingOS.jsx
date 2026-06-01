@@ -673,22 +673,18 @@ export default function DimaTradingOS() {
 
   // Load server log history + subscribe to live log lines
   useEffect(() => {
-    if (window.electronAPI?.openServerLogs) {
-      // Load history
-      window.electronAPI.getLogHistory?.().then(lines => {
-        if (lines?.length) setServerLogs(lines.map(l => l.line));
-      }).catch(() => {});
-      // Subscribe to live lines via ipcRenderer
-      try {
-        const { ipcRenderer } = window.require('electron');
-        ipcRenderer.on('log', (_, line) => {
-          setServerLogs(prev => {
-            const next = [...prev, line];
-            return next.length > 500 ? next.slice(-500) : next;
-          });
-        });
-      } catch {}
-    }
+    if (!window.electronAPI) return;
+    // Load history from buffer
+    window.electronAPI.getLogHistory?.().then(lines => {
+      if (lines?.length) setServerLogs(lines.map(l => l.line));
+    }).catch(() => {});
+    // Subscribe to live lines via preload bridge
+    window.electronAPI.onServerLog?.((line) => {
+      setServerLogs(prev => {
+        const next = [...prev, line];
+        return next.length > 500 ? next.slice(-500) : next;
+      });
+    });
   }, []);
 
   // Auto-scroll server log to bottom when new lines arrive and tab is open

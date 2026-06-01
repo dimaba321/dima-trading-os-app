@@ -19,6 +19,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   // Server logs
   openServerLogs:  () => ipcRenderer.invoke('open-server-logs'),
   getLogHistory:   () => ipcRenderer.invoke('get-log-history'),
+  onServerLog:     (cb) => ipcRenderer.on('log', (_, line) => cb(line)),
 
   // Detect we're in Electron
   isElectron: true,
