@@ -177,6 +177,18 @@ function closeSplash() {
 
 // ── First-run check ───────────────────────────────────────────────────────────
 function isFirstRun() {
+  // Skip wizard if .env is already pre-configured (personal build)
+  try {
+    const envPath = path.join(path.dirname(BACKEND_PATH), '.env');
+    if (fs.existsSync(envPath)) {
+      const env = fs.readFileSync(envPath, 'utf8');
+      if (env.includes('TELEGRAM_BOT_TOKEN=') &&
+          !env.includes('YOUR-BOT-TOKEN') &&
+          !env.includes('TELEGRAM_BOT_TOKEN=\n')) {
+        return false;  // personal build with pre-configured keys — skip wizard
+      }
+    }
+  } catch {}
   const settingsFile = path.join(app.getPath('userData'), 'setup.json');
   return !fs.existsSync(settingsFile);
 }

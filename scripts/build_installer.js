@@ -54,6 +54,23 @@ if (isClean && newVer !== oldVer) {
 console.log('[0/5] Generating installer wizard graphics...');
 execSync('node scripts/generate-installer-assets.js', { cwd: ROOT, stdio: 'inherit' });
 
+// ── Personal build: update package.json filter to include personal data ──────
+const pkgFilePath = path.join(ROOT, 'package.json');
+const pkgData     = JSON.parse(fs.readFileSync(pkgFilePath, 'utf8'));
+const origFilter  = JSON.parse(JSON.stringify(pkgData.build.extraResources[0].filter));
+
+if (!isClean) {
+  // Personal build — include .env + all data files so user doesn't need to reconfigure
+  pkgData.build.extraResources[0].filter = [
+    "**/*",
+    "!node_modules/.cache",
+    "!node_modules/nodemon"
+    // .env and data files INCLUDED — user's personal configuration
+  ];
+  fs.writeFileSync(pkgFilePath, JSON.stringify(pkgData, null, 2) + '\n', 'utf8');
+  console.log('[0/5] Personal build: including .env + all data files');
+}
+
 // ── Step 0b: Install backend production dependencies ──────────────────────────
 // Ensures backend/node_modules has only production packages before bundling.
 const backendDir = path.join(ROOT, '..', 'backend');
@@ -119,10 +136,17 @@ try {
   // ── Step 4: Restore original source ──────────────────────────────────────
   if (patchApplied && srcBackup) {
     fs.writeFileSync(srcFile, srcBackup, 'utf8');
-    // Restore original version in package.json for personal use
-    pkg.version = isClean ? newVer : oldVer; // keep new version after customer build
+    pkg.version = isClean ? newVer : oldVer;
     fs.writeFileSync(pkgFile, JSON.stringify(pkg, null, 2) + '\n', 'utf8');
     console.log('[4/5] Source restored.');
+  }
+
+  // Restore original extraResources filter after personal build
+  if (!isClean) {
+    const pkgNow = JSON.parse(fs.readFileSync(pkgFilePath, 'utf8'));
+    pkgNow.build.extraResources[0].filter = origFilter;
+    fs.writeFileSync(pkgFilePath, JSON.stringify(pkgNow, null, 2) + '\n', 'utf8');
+    console.log('[5/5] package.json filter restored.');
   }
 }
 
