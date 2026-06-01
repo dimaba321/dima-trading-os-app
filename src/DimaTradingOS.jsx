@@ -1934,7 +1934,7 @@ ${skillJournal ? `\nSKILL JOURNAL (${username}'s own recorded lessons — refere
                     <div style={{fontSize:9,fontWeight:700,color:txt3,textTransform:"uppercase",letterSpacing:"0.1em"}}>🔑 API Keys</div>
                     <div style={{display:"flex",gap:4,alignItems:"center"}}>
                       {[
-                        {label:"Anthropic", ok: serverConfig?.hasAnthropicKey || !!apiKey},
+                        {label:"Anthropic", ok: serverConfig?.hasAnthropicKey || (!!apiKey && apiKey.length > 30 && !apiKey.includes('...'))},
                         {label:"Telegram",  ok: serverConfig?.hasTelegram},
                         {label:"NewsAPI",   ok: serverConfig?.hasNewsApi},
                         {label:"Finnhub",   ok: serverConfig?.hasFinnhub},
