@@ -80,12 +80,10 @@ function startBackend() {
   freePort();
   console.log('[main] Starting backend:', BACKEND_PATH, `(attempt ${_respawnAttempts + 1})`);
 
-  // Launch backend in a minimized CMD window (visible in taskbar, not intrusive)
-  backendProcess = spawn('cmd', ['/c', 'start', '/MIN', 'node', BACKEND_PATH], {
+  backendProcess = spawn('node', [BACKEND_PATH], {
     cwd:   path.dirname(BACKEND_PATH),
     env:   { ...process.env, PORT: String(BACKEND_PORT) },
-    stdio: 'ignore',
-    detached: false,
+    stdio: ['ignore', 'pipe', 'pipe'],
   });
 
   // Force UTF-8 so emoji in log messages don't appear as garbage on Windows
