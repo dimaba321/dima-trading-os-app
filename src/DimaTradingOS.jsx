@@ -2021,7 +2021,7 @@ ${skillJournal ? `\nSKILL JOURNAL (${username}'s own recorded lessons — refere
             <div style={{ ...C.card, textAlign: "center", border:`1px solid ${eloRank.color}55` }}>
               <img src={eloRank.img} alt={eloRank.name} style={{width:80,height:80,objectFit:"contain",marginBottom:4,filter:`drop-shadow(0 0 10px ${eloRank.color}99)`}}/>
               <div style={{ fontSize: 15, fontWeight: 800, color: eloRank.color, letterSpacing:"0.05em" }}>{eloRank.name.toUpperCase()}</div>
-              <div style={{ fontSize: 20, fontWeight: 700, color: eloRank.color, margin:"2px 0" }}>{currentElo.toLocaleString()} <span style={{fontSize:10,fontWeight:400,color:txt3}}>ELO</span></div>
+              <div style={{ fontSize: 20, fontWeight: 700, color: eloRank.color, margin:"2px 0", fontFamily: display }}>{currentElo.toLocaleString()} <span style={{fontSize:10,fontWeight:400,color:txt3,fontFamily:mono}}>ELO</span></div>
               <div style={{ fontSize: 9, color: txt3 }}>{eloRank.desc}</div>
               {(()=>{
                 // Use ELO bands — not old PF/WR system
@@ -2296,9 +2296,9 @@ ${skillJournal ? `\nSKILL JOURNAL (${username}'s own recorded lessons — refere
               <img src={eloRank.img} alt={eloRank.name}
                    style={{width:140,height:140,objectFit:"contain",marginBottom:14,
                            filter:`drop-shadow(0 0 28px ${eloRank.color}cc) drop-shadow(0 0 10px ${eloRank.color}66)`}}/>
-              <div style={{fontSize:52,fontWeight:900,color:eloRank.color,fontVariantNumeric:"tabular-nums",lineHeight:1,marginBottom:4}}>
+              <div style={{fontSize:52,fontWeight:900,color:eloRank.color,fontVariantNumeric:"tabular-nums",lineHeight:1,marginBottom:4,fontFamily:display}}>
                 {currentElo.toLocaleString()}
-                <span style={{fontSize:16,fontWeight:400,color:txt3,marginLeft:6}}>ELO</span>
+                <span style={{fontSize:16,fontWeight:400,color:txt3,marginLeft:6,fontFamily:mono}}>ELO</span>
               </div>
               <div style={{fontSize:22,fontWeight:800,color:eloRank.color,letterSpacing:"0.15em",marginBottom:4}}>{eloRank.name.toUpperCase()}</div>
               <div style={{fontSize:12,color:txt2,marginBottom:8}}>{eloRank.desc}</div>
