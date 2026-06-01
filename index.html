@@ -4,19 +4,26 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>DIMA // TRADING OS</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
-    body { background: #0d1117; font-family: 'SF Mono', 'Fira Code', monospace; }
-    select option { background: #1c2128; color: #c9d1d9; }
+    body { background: #07070d; font-family: 'JetBrains Mono', 'SF Mono', monospace; }
+    select option { background: #15151f; color: #e9e9f2; }
     ::-webkit-scrollbar { width: 6px; height: 6px; }
-    ::-webkit-scrollbar-track { background: #0d1117; }
-    ::-webkit-scrollbar-thumb { background: #30363d; border-radius: 3px; }
+    ::-webkit-scrollbar-track { background: #07070d; }
+    ::-webkit-scrollbar-thumb { background: #34344e; border-radius: 3px; }
+    ::-webkit-scrollbar-thumb:hover { background: #ff6b00; }
     #toast {
       position: fixed; bottom: 20px; right: 20px; z-index: 9999;
-      background: #238636; color: #fff; padding: 10px 16px;
-      border-radius: 8px; font-family: 'SF Mono', 'Fira Code', monospace;
+      background: rgba(255,107,0,0.15); color: #ff6b00;
+      border: 1px solid rgba(255,107,0,0.45);
+      padding: 10px 16px;
+      border-radius: 4px; font-family: 'JetBrains Mono', monospace;
       font-size: 12px; font-weight: 600; pointer-events: none;
       opacity: 0; transition: opacity 0.2s;
+      text-shadow: 0 0 10px rgba(255,107,0,0.6);
+      box-shadow: 0 0 14px rgba(255,107,0,0.2);
     }
     #toast.show { opacity: 1; }
   </style>

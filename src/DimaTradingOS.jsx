@@ -209,7 +209,7 @@ function getTime() {
   if (day === 0 || day === 6) { status = "WEEKEND"; statusColor = "#8b949e"; }
   else if (mins >= 570 && mins < 960) { status = "OPEN"; statusColor = "#3fb950"; }
   else if (mins >= 240 && mins < 570) { status = "PRE-MARKET"; statusColor = "#d29922"; }
-  else { status = "CLOSED"; statusColor = "#f85149"; }
+  else { status = "CLOSED"; statusColor = "#ff2d55"; }
   return { il, ny, status, statusColor };
 }
 
@@ -217,39 +217,55 @@ function getTime() {
 //  STYLES
 // ═══════════════════════════════════════════════════════════════
 
-const bg = "#0d1117", bg2 = "#161b22", bg3 = "#1c2128", bdr = "#21262d", bdr2 = "#30363d";
-const grn = "#3fb950", red = "#f85149", amb = "#d29922", txt = "#c9d1d9", txt2 = "#8b949e", txt3 = "#484f58";
+// Cyberpunk color palette
+const bg       = "#07070d";
+const bg2      = "#101019";
+const bg3      = "#15151f";
+const elevated = "#1b1b28";
+const hover    = "#20202e";
+const bdr      = "#25253a";
+const bdr2     = "#34344e";
+const accent   = "#ff6b00";   // orange primary
+const accent2  = "#00e5ff";   // cyan secondary
+const grn      = "#14f195";   // neon green (profit)
+const red      = "#ff2d55";   // neon red (loss)
+const amb      = "#ffb800";   // amber
+const txt      = "#e9e9f2";
+const txt2     = "#8b8ba6";
+const txt3     = "#51516a";
+const mono     = "'JetBrains Mono', 'SF Mono', monospace";
+const display  = "'Chakra Petch', 'JetBrains Mono', monospace";
 
 const C = {
-  wrap: { fontFamily: "'SF Mono','Fira Code',monospace", fontSize: 12, background: bg, color: txt, minHeight: 580, borderRadius: 8, overflow: "hidden" },
-  nav: { display: "flex", alignItems: "center", justifyContent: "space-between", padding: "8px 12px", borderBottom: `1px solid ${bdr}`, background: bg2, flexWrap: "wrap", gap: 6 },
-  logo: { fontSize: 12, fontWeight: 700, color: grn, letterSpacing: "0.08em" },
-  tab: (on) => ({ padding: "4px 10px", borderRadius: 6, cursor: "pointer", fontSize: 11, color: on ? grn : txt2, border: on ? `1px solid ${bdr2}` : "1px solid transparent", background: "none", fontFamily: "inherit", transition: "all 0.15s", whiteSpace: "nowrap" }),
-  page: { padding: 12 },
+  card: { background: `linear-gradient(180deg, ${bg3}, ${bg2})`, border: `1px solid ${bdr}`, borderRadius: 4, position: "relative", boxShadow: `0 0 22px rgba(255,107,0,0.10)`, padding: 12, marginBottom: 10 },
+  csm: { background: bg3, border: `1px solid ${bdr}`, borderRadius: 4, padding: "7px 9px" },
+  stat: { background: `linear-gradient(180deg, ${bg3}, ${bg2})`, border: `1px solid ${bdr}`, borderRadius: 4, padding: "12px 14px", position: "relative", boxShadow: `0 0 22px rgba(255,107,0,0.08)` },
+  sl:   { fontSize: 9, color: txt2, textTransform: "uppercase", letterSpacing: "0.14em", marginBottom: 4, fontFamily: display, fontWeight: 600 },
+  sh:   { display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 },
+  stit: { fontSize: 11, fontWeight: 600, color: txt2, textTransform: "uppercase", letterSpacing: "0.1em", fontFamily: display },
+  tbl:  { width: "100%", borderCollapse: "collapse", fontSize: 12, fontFamily: mono },
+  th:   { fontSize: 8.5, color: txt3, textTransform: "uppercase", padding: "8px 14px", textAlign: "left", borderBottom: `1px solid ${bdr}`, fontWeight: 600, letterSpacing: "0.1em", background: "#0c0c14" },
+  td:   { padding: "9px 14px", borderBottom: `1px solid rgba(255,255,255,0.03)` },
+  fp:   { background: `linear-gradient(180deg, ${bg3}, ${bg2})`, border: `1px solid ${bdr}`, borderRadius: 4, padding: 14, marginBottom: 12 },
+  fl:   { fontSize: 9, color: txt2, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 3, display: "block" },
+  fi:   { width: "100%", background: elevated, border: `1px solid ${bdr2}`, color: txt, fontFamily: mono, fontSize: 12, padding: "8px 12px", borderRadius: 3, outline: "none", marginBottom: 6, boxSizing: "border-box" },
+  fgr:  { display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 6 },
+  fgr3: { display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8, marginBottom: 6 },
+  btn:  (v) => ({ background: v === "green" ? "rgba(255,107,0,0.15)" : v === "red" ? "rgba(255,45,85,0.12)" : elevated, color: v === "green" ? accent : v === "red" ? red : txt2, border: v === "green" ? `1px solid rgba(255,107,0,0.45)` : v === "red" ? `1px solid rgba(255,45,85,0.35)` : `1px solid ${bdr2}`, borderRadius: 3, padding: "9px 12px", cursor: "pointer", fontFamily: mono, fontSize: 11, fontWeight: 600, width: "100%", marginBottom: 4, textShadow: v === "green" ? "0 0 10px rgba(255,107,0,0.6)" : "none", boxShadow: v === "green" ? "0 0 14px rgba(255,107,0,0.2)" : "none" }),
+  sk:   (emg) => ({ display: "flex", alignItems: "center", gap: 8, padding: "9px 12px", background: elevated, border: emg ? `1px solid rgba(255,45,85,0.35)` : `1px solid ${bdr}`, borderRadius: 3, cursor: "pointer", textAlign: "left", width: "100%", fontFamily: mono, marginBottom: 5 }),
+  rcard:(col) => ({ borderRadius: 4, padding: 14, border: `1.5px solid ${col}`, textAlign: "center", marginBottom: 10, background: "rgba(0,0,0,0.2)" }),
+  rrow: (cur, col) => ({ display: "flex", alignItems: "center", gap: 7, padding: "6px 8px", borderRadius: 4, border: cur ? `1.5px solid ${col}` : `1px solid ${bdr}`, marginBottom: 3 }),
+  pb:   { height: 4, borderRadius: 2, background: bdr, marginTop: 6 },
+  sel:  { background: elevated, border: `1px solid ${bdr2}`, color: txt, fontFamily: mono, fontSize: 11, padding: "5px 8px", borderRadius: 3, outline: "none", cursor: "pointer" },
+  nav:  { height: 54, flex: "none", display: "flex", alignItems: "center", padding: "0 16px", gap: 18, borderBottom: `1px solid ${bdr}`, background: "linear-gradient(180deg, #0d0d16, #090910)", position: "relative", zIndex: 5 },
+  logo: { fontFamily: display, fontWeight: 700, fontSize: 14, letterSpacing: "0.08em" },
+  tab:  (on) => ({ position: "relative", fontFamily: display, fontSize: 12, fontWeight: on ? 600 : 500, letterSpacing: "0.04em", color: on ? accent : txt2, background: on ? `rgba(255,107,0,0.08)` : "transparent", border: `1px solid ${on ? "rgba(255,107,0,0.45)" : "transparent"}`, borderRadius: 3, padding: "6px 11px", cursor: "pointer", textShadow: on ? "0 0 10px rgba(255,107,0,0.6)" : "none", transition: "all 0.15s", whiteSpace: "nowrap" }),
+  page: { flex: 1, padding: 16, display: "flex", flexDirection: "column", gap: 14, overflow: "hidden" },
   g5: { display: "grid", gridTemplateColumns: "repeat(5,1fr)", gap: 8, marginBottom: 12 },
   g4: { display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 8, marginBottom: 12 },
   g2: { display: "grid", gridTemplateColumns: "1fr 256px", gap: 10 },
   g2e: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6 },
-  card: { background: bg2, border: `1px solid ${bdr}`, borderRadius: 8, padding: 12, marginBottom: 10 },
-  csm: { background: bg3, border: `1px solid ${bdr}`, borderRadius: 6, padding: "7px 9px" },
-  stat: { background: bg2, border: `1px solid ${bdr}`, borderRadius: 8, padding: "10px 12px" },
-  sl: { fontSize: 9, color: txt3, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 4 },
-  sh: { display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 },
-  stit: { fontSize: 9, fontWeight: 700, color: txt3, textTransform: "uppercase", letterSpacing: "0.1em" },
-  tbl: { width: "100%", borderCollapse: "collapse", fontSize: 10 },
-  th: { fontSize: 8, color: txt3, textTransform: "uppercase", padding: "3px 5px", textAlign: "left", borderBottom: `1px solid ${bdr}`, fontWeight: 500 },
-  td: { padding: "4px 5px", borderBottom: `1px solid ${bdr}` },
-  fp: { background: bg2, border: `1px solid ${bdr}`, borderRadius: 8, padding: 12, marginBottom: 10 },
-  fl: { fontSize: 9, color: txt3, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 3, display: "block" },
-  fi: { width: "100%", background: bg3, border: `1px solid ${bdr2}`, color: txt, fontFamily: "inherit", fontSize: 11, padding: "6px 8px", borderRadius: 5, outline: "none", marginBottom: 5, boxSizing: "border-box" },
-  fgr: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6, marginBottom: 5 },
-  fgr3: { display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 6, marginBottom: 5 },
-  btn: (v) => ({ background: v === "green" ? "#238636" : v === "red" ? "rgba(248,81,73,0.1)" : bg3, color: v === "green" ? "#fff" : v === "red" ? red : txt2, border: v === "red" ? `1px solid rgba(248,81,73,0.3)` : `1px solid ${bdr2}`, borderRadius: 6, padding: "7px 12px", cursor: "pointer", fontFamily: "inherit", fontSize: 11, fontWeight: 600, width: "100%", marginBottom: 4 }),
-  sk: (emg) => ({ display: "flex", alignItems: "center", gap: 8, padding: "8px 10px", background: bg2, border: emg ? "1px solid rgba(248,81,73,0.2)" : `1px solid ${bdr}`, borderRadius: 6, cursor: "pointer", textAlign: "left", width: "100%", fontFamily: "inherit", marginBottom: 5 }),
-  rcard: (col) => ({ borderRadius: 8, padding: 14, border: `2px solid ${col}`, textAlign: "center", marginBottom: 10, background: "rgba(0,0,0,0.2)" }),
-  rrow: (cur, col) => ({ display: "flex", alignItems: "center", gap: 7, padding: "6px 8px", borderRadius: 6, border: cur ? `1.5px solid ${col}` : `1px solid ${bdr}`, marginBottom: 3 }),
-  pb: { height: 3, borderRadius: 2, background: bdr, marginTop: 6 },
-  sel: { background: bg3, border: `1px solid ${bdr2}`, color: txt, fontFamily: "inherit", fontSize: 10, padding: "3px 7px", borderRadius: 4, outline: "none", cursor: "pointer" },
+  wrap: { display: "flex", flexDirection: "column", fontFamily: mono, fontSize: 12, background: bg, color: txt, minHeight: "100vh", overflow: "hidden", position: "relative" },
 };
 
 // ═══════════════════════════════════════════════════════════════
@@ -257,9 +273,9 @@ const C = {
 // ═══════════════════════════════════════════════════════════════
 
 function TradingViewChart({ ticker }) {
-  const src = `https://s.tradingview.com/widgetembed/?frameElementId=tv_${ticker}&symbol=${encodeURIComponent(ticker)}&interval=D&hidesidetoolbar=1&hideTopBar=1&theme=dark&style=1&locale=en&allow_symbol_change=0&save_image=0&toolbarbg=161b22`;
+  const src = `https://s.tradingview.com/widgetembed/?frameElementId=tv_${ticker}&symbol=${encodeURIComponent(ticker)}&interval=D&hidesidetoolbar=1&hideTopBar=1&theme=dark&style=1&locale=en&allow_symbol_change=0&save_image=0&toolbarbg=07070d`;
   return (
-    <div style={{ height: 280, borderRadius: 6, overflow: "hidden", border: `1px solid ${bdr}`, marginTop: 8, background: bg3 }}>
+    <div style={{ height: 280, borderRadius: 4, overflow: "hidden", border: `1px solid ${bdr}`, marginTop: 8, background: bg3 }}>
       <iframe
         src={src}
         style={{ width: "100%", height: "100%", border: "none" }}
@@ -342,54 +358,76 @@ function Sk({ icon, label, desc, prompt, emg, onSkill }) {
 }
 
 function SpeedometerGauge({ value, title, gId }) {
-  const v   = value != null ? Math.max(0, Math.min(100, value)) : null;
-  const cx = 150, cy = 165;
-  const rOuter = 108, rInner = 93, rHole = 60;
-  const needleLen = rOuter - 22;
-  const pct = v != null ? v / 100 : 0.5;
-  const na  = Math.PI * (1 - pct);
-  const tipX = cx + needleLen * Math.cos(na);
-  const tipY = cy - needleLen * Math.sin(na);
-  const valCol = v == null ? '#484f58' : v <= 25 ? '#f85149' : v <= 45 ? '#d29922' : v <= 55 ? '#8b949e' : v <= 75 ? '#3fb950' : '#2f855a';
+  const v = value != null ? Math.max(0, Math.min(100, value)) : null;
+  const W = 230, H = 138, cx = W / 2, cy = 118, r = 92;
+
+  function polar(pcx, pcy, pr, deg) {
+    const a = (deg - 180) * Math.PI / 180;
+    return [pcx + pr * Math.cos(a), pcy + pr * Math.sin(a)];
+  }
+  function arcPath(acx, acy, ar, startDeg, endDeg) {
+    const [x1, y1] = polar(acx, acy, ar, startDeg);
+    const [x2, y2] = polar(acx, acy, ar, endDeg);
+    const large = endDeg - startDeg > 180 ? 1 : 0;
+    return `M ${x1} ${y1} A ${ar} ${ar} 0 ${large} 1 ${x2} ${y2}`;
+  }
+
+  const vSafe = v ?? 50;
+  const needleDeg = (vSafe / 100) * 180;
+  const [nx, ny] = polar(cx, cy, r - 12, needleDeg);
+
+  const valCol = v == null ? txt3 : v <= 25 ? '#ff2d55' : v <= 45 ? '#ff7a45' : v <= 55 ? '#ffb800' : v <= 75 ? '#9be15d' : '#14f195';
   const zoneLbl = v == null ? '—' : v <= 25 ? 'EXTREME FEAR' : v <= 45 ? 'FEAR' : v <= 55 ? 'NEUTRAL' : v <= 75 ? 'GREED' : 'EXTREME GREED';
+
+  const ticks = [];
+  for (let i = 0; i <= 10; i++) {
+    const deg = (i / 10) * 180;
+    const [x1, y1] = polar(cx, cy, r + 2, deg);
+    const [x2, y2] = polar(cx, cy, r - (i % 5 === 0 ? 10 : 5), deg);
+    ticks.push({ x1, y1, x2, y2, major: i % 5 === 0 });
+  }
+
   return (
-    <div style={{ flex: 1, minWidth: 0 }}>
-      <div style={{ fontSize: 10, fontWeight: 700, color: grn, textAlign: 'center', letterSpacing: '0.15em', textTransform: 'uppercase', marginBottom: 4 }}>{title}</div>
-      <svg viewBox="0 0 300 210" style={{ width: '100%', display: 'block' }}>
+    <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", alignItems: "center" }}>
+      <div style={{ fontSize: 10, fontWeight: 700, color: txt2, textAlign: 'center', letterSpacing: '0.15em', textTransform: 'uppercase', marginBottom: 4, fontFamily: display }}>{title}</div>
+      <svg width={W} height={H} viewBox={`0 0 ${W} ${H}`} style={{ overflow: "visible", width: "100%", display: "block" }}>
         <defs>
           <linearGradient id={`g${gId}`} x1="0%" y1="0%" x2="100%" y2="0%">
-            <stop offset="0%"   stopColor="#f85149"/>
-            <stop offset="50%"  stopColor="#d29922"/>
-            <stop offset="100%" stopColor="#3fb950"/>
+            <stop offset="0%"   stopColor="#ff2d55"/>
+            <stop offset="35%"  stopColor="#ff7a45"/>
+            <stop offset="50%"  stopColor="#ffb800"/>
+            <stop offset="70%"  stopColor="#9be15d"/>
+            <stop offset="100%" stopColor="#14f195"/>
           </linearGradient>
-          <filter id={`gl${gId}`} x="-25%" y="-25%" width="150%" height="150%">
-            <feGaussianBlur stdDeviation="6" result="blur"/>
-            <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+          <filter id={`ng${gId}`} x="-50%" y="-50%" width="200%" height="200%">
+            <feGaussianBlur stdDeviation="2.2" result="b"/>
+            <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
           </filter>
         </defs>
-        <path d={`M${cx-rOuter},${cy} A${rOuter},${rOuter} 0 0 1 ${cx+rOuter},${cy}`}
-              stroke={`url(#g${gId})`} strokeWidth="28" fill="none" strokeLinecap="round"
-              filter={`url(#gl${gId})`}/>
-        <path d={`M${cx-rInner},${cy} A${rInner},${rInner} 0 0 1 ${cx+rInner},${cy}`}
-              stroke="#1c2128" strokeWidth="2" fill="none"/>
-        <circle cx={cx} cy={cy} r={rHole} fill="#0d1117"/>
-        {v != null && <>
-          <line x1={cx} y1={cy} x2={tipX} y2={tipY}
-                stroke="white" strokeWidth={4} strokeLinecap="round"/>
-          <circle cx={cx} cy={cy} r={7} fill="white"/>
-          <circle cx={cx} cy={cy} r={3.5} fill="#0d1117"/>
-        </>}
-        <text x={cx} y={cy}
-              textAnchor="middle" fontFamily="Arial" fontSize={40} fontWeight="700"
-              fill={valCol} dy="10">
+        {/* track */}
+        <path d={arcPath(cx, cy, r, 0, 180)} fill="none" stroke="#1c1c2b" strokeWidth="14" strokeLinecap="round"/>
+        {/* colored arc */}
+        <path d={arcPath(cx, cy, r, 0, 180)} fill="none" stroke={`url(#g${gId})`} strokeWidth="9" strokeLinecap="round" opacity="0.95"/>
+        {/* ticks */}
+        {ticks.map((t, i) => (
+          <line key={i} x1={t.x1} y1={t.y1} x2={t.x2} y2={t.y2}
+            stroke={t.major ? "rgba(255,255,255,0.45)" : "rgba(255,255,255,0.16)"} strokeWidth={t.major ? 1.4 : 1}/>
+        ))}
+        {/* needle */}
+        {v != null && (
+          <>
+            <line x1={cx} y1={cy} x2={nx} y2={ny} stroke="#fff" strokeWidth="2.4" strokeLinecap="round" filter={`url(#ng${gId})`} style={{ transition: "all 0.7s cubic-bezier(.22,1,.36,1)" }}/>
+            <circle cx={cx} cy={cy} r="6" fill="#0a0a12" stroke="#fff" strokeWidth="1.6"/>
+            <circle cx={cx} cy={cy} r="2" fill={valCol}/>
+          </>
+        )}
+        {/* value */}
+        <text x={cx} y={cy - 26} textAnchor="middle" fontFamily={mono} fontWeight="800" fontSize="30" fill={valCol}
+          style={{ filter: `drop-shadow(0 0 8px ${v != null && v >= 55 ? "rgba(20,241,149,.5)" : "rgba(255,45,85,.45)"})` }}>
           {v ?? '—'}
         </text>
-        <text x={cx} y={cy + 38}
-              textAnchor="middle" fontFamily="Arial" fontSize={10} fontWeight="700"
-              fill={valCol} letterSpacing="1.5">
-          {zoneLbl}
-        </text>
       </svg>
+      <div style={{ fontSize: 11, fontWeight: 700, color: valCol, fontFamily: mono, letterSpacing: "0.12em", textTransform: "uppercase", marginTop: -2 }}>{zoneLbl}</div>
     </div>
   );
 }
@@ -526,6 +564,29 @@ export default function DimaTradingOS() {
   const eqRef = useRef(null), ptRef = useRef(null);
   const eqChart = useRef(null), ptChart = useRef(null);
 
+  // ── CSS keyframes injection ────────────────────────────────
+  useEffect(() => {
+    const style = document.createElement('style');
+    style.textContent = `
+      @keyframes sweep { 0% { transform: translateX(-100%); } 100% { transform: translateX(100%); } }
+      @keyframes pulse { 0%,100% { opacity:1; box-shadow: 0 0 0 0 rgba(20,241,149,0.55); } 50% { opacity:0.6; box-shadow: 0 0 0 5px rgba(20,241,149,0); } }
+      @keyframes flashUp { 0% { color: #14f195; } 100% {} }
+      @keyframes flashDown { 0% { color: #ff2d55; } 100% {} }
+      @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+      @keyframes blink { 0%,100% { opacity:1; } 50% { opacity:0.3; } }
+      @keyframes scanBar { 0% { width:0%; margin-left:0; } 50% { width:60%; margin-left:20%; } 100% { width:0%; margin-left:100%; } }
+      @keyframes pulse2 { 0%,100% { opacity:1; } 50% { opacity:0.5; } }
+      * { box-sizing: border-box; }
+      ::-webkit-scrollbar { width: 6px; }
+      ::-webkit-scrollbar-track { background: #07070d; }
+      ::-webkit-scrollbar-thumb { background: #34344e; border-radius: 3px; }
+      ::-webkit-scrollbar-thumb:hover { background: #ff6b00; }
+      input, select, textarea { font-family: 'JetBrains Mono', monospace !important; }
+    `;
+    document.head.appendChild(style);
+    return () => style.remove();
+  }, []);
+
   // ── effects ────────────────────────────────────────────────
   useEffect(() => { const t = setInterval(() => setTime(getTime()), 1000); return () => clearInterval(t); }, []);
   useEffect(() => { fetchBTC(); const t = setInterval(fetchBTC, 30000); return () => clearInterval(t); }, []);
@@ -646,8 +707,8 @@ export default function DimaTradingOS() {
       const ptC = data.map((_, i) => data[i] >= (i > 0 ? data[i - 1] : 0) ? "rgba(63,185,80,1)" : "rgba(248,81,73,1)");
       eqChart.current = new Chart(eqRef.current, {
         type: "line",
-        data: { labels: labs, datasets: [{ data, borderColor: "rgba(63,185,80,0.6)", backgroundColor: "rgba(63,185,80,0.04)", fill: true, tension: 0.3, pointRadius: 4, pointBackgroundColor: ptC, pointBorderColor: ptC, borderWidth: 1.5 }] },
-        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false }, tooltip: { callbacks: { label: c => "$" + c.parsed.y.toFixed(2) }, backgroundColor: bg3, titleColor: txt2, bodyColor: txt, borderColor: bdr2, borderWidth: 1 } }, scales: { x: { ticks: { font: { size: 8 }, color: txt3, autoSkip: true, maxRotation: 45 }, grid: { color: bdr } }, y: { ticks: { font: { size: 8 }, color: txt3, callback: v => "$" + v }, grid: { color: bdr } } } },
+        data: { labels: labs, datasets: [{ data, borderColor: "rgba(20,241,149,0.7)", backgroundColor: "rgba(20,241,149,0.04)", fill: true, tension: 0.3, pointRadius: 4, pointBackgroundColor: ptC.map(c => c.includes("63,185") ? "rgba(20,241,149,1)" : "rgba(255,45,85,1)"), pointBorderColor: ptC.map(c => c.includes("63,185") ? "rgba(20,241,149,1)" : "rgba(255,45,85,1)"), borderWidth: 1.5 }] },
+        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false }, tooltip: { callbacks: { label: c => "$" + c.parsed.y.toFixed(2) }, backgroundColor: bg3, titleColor: txt2, bodyColor: txt, borderColor: bdr2, borderWidth: 1 } }, scales: { x: { ticks: { font: { size: 8, family: "'JetBrains Mono', monospace" }, color: txt3, autoSkip: true, maxRotation: 45 }, grid: { color: bdr } }, y: { ticks: { font: { size: 8, family: "'JetBrains Mono', monospace" }, color: txt3, callback: v => "$" + v }, grid: { color: bdr } } } },
       });
     }
     if (ptRef.current && !ptChart.current) {
@@ -660,11 +721,11 @@ export default function DimaTradingOS() {
       });
       const labs = Object.keys(patMap).slice(0, 12);
       const data = labs.map(k => parseFloat((patMap[k].w / patMap[k].t * 100).toFixed(0)));
-      const cols = data.map(v => v >= 50 ? "rgba(63,185,80,0.7)" : "rgba(248,81,73,0.7)");
+      const cols = data.map(v => v >= 50 ? "rgba(20,241,149,0.7)" : "rgba(255,45,85,0.7)");
       ptChart.current = new Chart(ptRef.current, {
         type: "bar",
-        data: { labels: labs, datasets: [{ data, backgroundColor: cols, borderRadius: 3 }] },
-        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false }, tooltip: { callbacks: { label: c => c.parsed.y + "% win rate" }, backgroundColor: bg3, titleColor: txt2, bodyColor: txt, borderColor: bdr2, borderWidth: 1 } }, scales: { x: { ticks: { font: { size: 8 }, color: txt3, maxRotation: 45 }, grid: { display: false } }, y: { min: 0, max: 100, ticks: { font: { size: 8 }, color: txt3, callback: v => v + "%" }, grid: { color: bdr } } } },
+        data: { labels: labs, datasets: [{ data, backgroundColor: cols, borderRadius: 2 }] },
+        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false }, tooltip: { callbacks: { label: c => c.parsed.y + "% win rate" }, backgroundColor: bg3, titleColor: txt2, bodyColor: txt, borderColor: bdr2, borderWidth: 1 } }, scales: { x: { ticks: { font: { size: 8, family: "'JetBrains Mono', monospace" }, color: txt3, maxRotation: 45 }, grid: { display: false } }, y: { min: 0, max: 100, ticks: { font: { size: 8, family: "'JetBrains Mono', monospace" }, color: txt3, callback: v => v + "%" }, grid: { color: bdr } } } },
       });
     }
   }, [closed]);
@@ -1647,32 +1708,82 @@ ${skillJournal ? `\nSKILL JOURNAL (${username}'s own recorded lessons — refere
   //  RENDER
   // ═══════════════════════════════════════════════════════════
   return (
-    <div style={C.wrap}>
+    <div style={{
+      ...C.wrap,
+      background: `radial-gradient(1200px 700px at 70% -10%, rgba(255,107,0,0.08), transparent 60%), radial-gradient(900px 600px at -5% 110%, rgba(0,229,255,0.06), transparent 60%), ${bg}`
+    }}>
+      {/* Grid overlay */}
+      <div style={{
+        position: "absolute", inset: 0, pointerEvents: "none", zIndex: 0,
+        backgroundImage: `linear-gradient(rgba(0,229,255,0.04) 1px, transparent 1px), linear-gradient(90deg, rgba(0,229,255,0.04) 1px, transparent 1px)`,
+        backgroundSize: "44px 44px",
+        maskImage: "radial-gradient(120% 90% at 50% 0%, #000 35%, transparent 85%)"
+      }} />
 
       {/* NAV */}
       <div style={C.nav}>
-        <div style={C.logo}>DIMA // TRADING OS</div>
-        <div style={{ display: "flex", gap: 3, overflowX: "auto", flexShrink: 1, minWidth: 0 }}>
-          {[["dash","Dashboard"],["pos","Positions"],["stats","Statistics"],["hist","History"],["analytics","Analytics"],["chat","Chat"],["skills","Skills"],["agents","🤖 Agents"]].map(([id, label]) => (
-            <button key={id} type="button" style={C.tab(tab === id)} onClick={() => setTab(id)}>{label}</button>
-          ))}
+        {/* Moving accent hairline */}
+        <div style={{ position: "absolute", left: 0, right: 0, bottom: -1, height: 1, overflow: "hidden", zIndex: 6 }}>
+          <div style={{ position: "absolute", inset: 0, width: "40%",
+            background: `linear-gradient(90deg, transparent, ${accent}, transparent)`,
+            animation: "sweep 6s linear infinite", opacity: 0.7 }} />
         </div>
-        <div style={{ display: "flex", alignItems: "center", gap: 10, flexShrink: 0 }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 5, background: bg2, border: `1px solid ${bdr}`, borderRadius: 20, padding: "3px 9px", fontSize: 11 }}>
-            <span style={{ color: txt3, fontSize: 9 }}>BTC</span>
-            <span style={{ fontWeight: 700, color: btcCol }}>{btc.price ? "$" + btc.price.toLocaleString("en-US", { maximumFractionDigits: 0 }) : "loading..."}</span>
-            {btc.change != null && <span style={{ fontSize: 9, color: btc.change >= 0 ? grn : red }}>{btc.change >= 0 ? "+" : ""}{btc.change.toFixed(2)}%</span>}
+
+        {/* Logo */}
+        <div style={{ display: "flex", alignItems: "center", gap: 9, flexShrink: 0 }}>
+          <div style={{
+            width: 26, height: 26, display: "grid", placeItems: "center",
+            border: `1px solid ${accent}`, color: accent,
+            fontFamily: display, fontWeight: 700, fontSize: 15,
+            boxShadow: `0 0 14px rgba(255,107,0,0.5), inset 0 0 8px rgba(255,107,0,0.15)`,
+            clipPath: "polygon(0 0, 100% 0, 100% 70%, 70% 100%, 0 100%)",
+            flexShrink: 0
+          }}>D</div>
+          <div style={C.logo}>
+            <span style={{ color: accent }}>DIMA</span>
+            <span style={{ color: txt3, margin: "0 5px" }}>//</span>
+            <span style={{ color: txt }}>TRADING OS</span>
           </div>
-          <div style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 10, color: txt2 }}>
-            <div style={{ width: 6, height: 6, borderRadius: "50%", background: time.statusColor }} />
-            <span>{time.status}</span>
+          <span style={{ fontSize: 8, color: txt3, border: `1px solid ${bdr}`, padding: "1px 4px", borderRadius: 2, marginLeft: 2 }}>v1.0.5</span>
+        </div>
+
+        {/* Tabs */}
+        <div style={{ display: "flex", gap: 2, overflowX: "auto", flexShrink: 1, minWidth: 0 }}>
+          {[["dash","Dashboard"],["pos","Positions"],["stats","Statistics"],["hist","History"],["analytics","Analytics"],["chat","Chat"],["skills","Skills"],["agents","Agents ◇"]].map(([id, label]) => {
+            const on = tab === id;
+            return (
+              <button key={id} type="button" style={C.tab(on)} onClick={() => setTab(id)}
+                onMouseEnter={e => { if (!on) { e.currentTarget.style.color = txt; e.currentTarget.style.background = hover; } }}
+                onMouseLeave={e => { if (!on) { e.currentTarget.style.color = txt2; e.currentTarget.style.background = "transparent"; } }}>
+                {label}
+                {on && <span style={{ position: "absolute", left: 8, right: 8, bottom: -1, height: 2, background: accent, boxShadow: `0 0 8px ${accent}`, display: "block" }} />}
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Right cluster */}
+        <div style={{ display: "flex", alignItems: "center", gap: 14, flexShrink: 0, marginLeft: "auto" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 7, fontSize: 12 }}>
+            <span style={{ color: txt3, fontSize: 9, fontFamily: display, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.1em" }}>BTC</span>
+            <span style={{ fontWeight: 700, color: btcCol, fontFamily: mono, fontSize: 13 }}>{btc.price ? "$" + btc.price.toLocaleString("en-US", { maximumFractionDigits: 0 }) : "loading..."}</span>
+            {btc.change != null && <span style={{ fontSize: 11, color: btc.change >= 0 ? grn : red }}>{btc.change >= 0 ? "▲" : "▼"} {btc.change >= 0 ? "+" : ""}{btc.change.toFixed(2)}%</span>}
           </div>
-          <div style={{ fontSize: 11, color: txt2, textAlign: "right", lineHeight: 1.6, fontWeight: 500 }}>
-            <div>🇮🇱 <span style={{color:txt, fontWeight:600}}>{time.il}</span></div>
-            <div>🇺🇸 <span style={{color:txt, fontWeight:600}}>{time.ny}</span></div>
+          <div style={{ width: 1, height: 18, background: bdr2 }} />
+          <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
+            <div style={{ width: 7, height: 7, borderRadius: "50%", background: time.statusColor, animation: time.status === "OPEN" ? "pulse 1.8s ease-in-out infinite" : "none", flexShrink: 0 }} />
+            <span style={{ fontSize: 10, color: time.statusColor, fontFamily: display, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.08em" }}>{time.status}</span>
+          </div>
+          <div style={{ width: 1, height: 18, background: bdr2 }} />
+          <div style={{ fontSize: 11, color: txt2, textAlign: "right", lineHeight: 1.6, fontWeight: 500, fontFamily: mono }}>
+            <div style={{ fontSize: 10, color: txt3 }}>IL <span style={{color: txt, fontWeight: 600}}>{time.il}</span></div>
+            <div style={{ fontSize: 10, color: txt3 }}>NY <span style={{color: txt, fontWeight: 600}}>{time.ny}</span></div>
           </div>
         </div>
       </div>
+
+      {/* Content wrapper — above grid overlay */}
+      <div style={{ position: "relative", zIndex: 1, flex: 1, display: "flex", flexDirection: "column", overflow: "hidden" }}>
 
       {/* ── DASHBOARD ── */}
       {tab === "dash" && <div style={C.page}>
@@ -1707,8 +1818,8 @@ ${skillJournal ? `\nSKILL JOURNAL (${username}'s own recorded lessons — refere
               {/* Account card with deposit button */}
               <div style={C.stat}>
                 <div style={C.sl}>Account Value</div>
-                <div style={{fontSize:16,fontWeight:700,color:txt}}>${baseCapital.toLocaleString("en-US",{maximumFractionDigits:0})}</div>
-                <div style={{display:"flex",alignItems:"center",gap:4,marginTop:4,flexWrap:"wrap"}}>
+                <div style={{fontSize:22,fontWeight:800,color:txt,fontFamily:mono,lineHeight:1,marginTop:6}}>${baseCapital.toLocaleString("en-US",{maximumFractionDigits:0})}</div>
+                <div style={{display:"flex",alignItems:"center",gap:4,marginTop:6,flexWrap:"wrap"}}>
                   <input
                     type="number"
                     value={accountValue}
@@ -1721,22 +1832,33 @@ ${skillJournal ? `\nSKILL JOURNAL (${username}'s own recorded lessons — refere
                         body: JSON.stringify({ value: String(v) }),
                       }).catch(() => {});
                     }}
-                    style={{width:80,fontSize:9,padding:"2px 5px",background:bg3,border:`1px solid ${bdr}`,color:txt2,borderRadius:4,fontFamily:"inherit"}}
+                    style={{width:80,fontSize:9,padding:"2px 5px",background:elevated,border:`1px solid ${bdr}`,color:txt2,borderRadius:3,fontFamily:mono}}
                   />
-                  <button type="button" onClick={()=>setShowDeposit(true)} style={{fontSize:8,padding:"2px 7px",background:"rgba(63,185,80,0.1)",border:`1px solid rgba(63,185,80,0.3)`,color:grn,borderRadius:4,cursor:"pointer",fontFamily:"inherit"}}>+ Deposit ₪</button>
+                  <button type="button" onClick={()=>setShowDeposit(true)} style={{fontSize:8,padding:"2px 7px",background:`rgba(20,241,149,0.08)`,border:`1px solid rgba(20,241,149,0.3)`,color:grn,borderRadius:3,cursor:"pointer",fontFamily:mono}}>+ Deposit ₪</button>
+                </div>
+                {/* sparkline */}
+                <div style={{display:"flex",alignItems:"flex-end",gap:2,height:16,marginTop:9}}>
+                  {[40,55,48,62,58,70,66,78,74,88].map((h,i) => (
+                    <div key={i} style={{flex:1,height:`${h}%`,background:txt2,opacity:0.18+(i/10)*0.6,borderRadius:1}}/>
+                  ))}
                 </div>
               </div>
               {[
-                ["Realized P&L",(stats.net>=0?"+":"")+"$"+Math.abs(stats.net).toFixed(2),(stats.net/11000*100).toFixed(2)+"% on $11K start",pnlCol],
-                ["Unrealized P&L",(unrealizedTotal>=0?"+":"")+"$"+Math.abs(unrealizedTotal).toFixed(0),Object.keys(prices).length?"live":"loading prices...",unrCol],
-                ["Win rate",stats.wr.toFixed(1)+"%",stats.wins+"W / "+stats.losses+"L · "+stats.total+" trades",amb],
-                ["Profit factor",stats.pf.toFixed(2),"Target >1.5",pnlCol],
-                ["ELO Rating", currentElo.toLocaleString(), eloRank.name + (eloToNext ? " · " + eloToNext + " to next" : " · MAX"), eloRank.color],
-              ].map(([label,val,sub,col])=>(
+                ["Realized P&L",(stats.net>=0?"+":"")+"$"+Math.abs(stats.net).toFixed(2),(stats.net/11000*100).toFixed(2)+"% on $11K start",pnlCol,[50,45,55,48,60,52,64,58,70,66]],
+                ["Unrealized P&L",(unrealizedTotal>=0?"+":"")+"$"+Math.abs(unrealizedTotal).toFixed(0),Object.keys(prices).length?"live":"loading prices...",unrCol,[55,50,58,54,62,56,60,64,58,62]],
+                ["Win rate",stats.wr.toFixed(1)+"%",stats.wins+"W / "+stats.losses+"L · "+stats.total+" trades",amb,[60,58,64,62,66,64,68,65,70,68]],
+                ["Profit factor",stats.pf.toFixed(2),"Target >1.5",pnlCol,[40,48,44,52,50,58,55,62,60,66]],
+                ["ELO Rating", currentElo.toLocaleString(), eloRank.name + (eloToNext ? " · " + eloToNext + " to next" : " · MAX"), eloRank.color,[50,52,51,56,54,60,58,63,61,66]],
+              ].map(([label,val,sub,col,spark])=>(
                 <div key={label} style={C.stat}>
                   <div style={C.sl}>{label}</div>
-                  <div style={{fontSize:16,fontWeight:700,color:col}}>{val}</div>
-                  <div style={{fontSize:9,color:txt3,marginTop:2}}>{sub}</div>
+                  <div style={{fontSize:22,fontWeight:800,color:col,fontFamily:mono,lineHeight:1,marginTop:6,textShadow:col===grn?"0 0 16px rgba(20,241,149,0.45)":col===red?"0 0 16px rgba(255,45,85,0.45)":col===amb?"0 0 16px rgba(255,184,0,0.4)":"0 0 16px rgba(255,107,0,0.5)"}}>{val}</div>
+                  <div style={{fontSize:9,color:txt3,marginTop:4}}>{sub}</div>
+                  <div style={{display:"flex",alignItems:"flex-end",gap:2,height:16,marginTop:9}}>
+                    {spark.map((h,i) => (
+                      <div key={i} style={{flex:1,height:`${h}%`,background:col,opacity:0.18+(i/10)*0.6,borderRadius:1}}/>
+                    ))}
+                  </div>
                 </div>
               ))}
             </div>
@@ -1759,10 +1881,10 @@ ${skillJournal ? `\nSKILL JOURNAL (${username}'s own recorded lessons — refere
                 <div style={C.card}>
                   <div style={{fontSize:9,fontWeight:700,color:txt3,textTransform:"uppercase",letterSpacing:"0.1em",marginBottom:8}}>QUICK ACTIONS</div>
                   <button type="button" onClick={()=>setTab('pos')} style={{...C.btn("green"),marginBottom:6,fontSize:11,fontWeight:700}}>+ Add / Close Position</button>
-                  <button type="button" onClick={()=>setTab('stats')} style={{...C.btn(""),marginBottom:6,fontSize:11}}>📊 Statistics & Rank</button>
-                  <button type="button" onClick={()=>quickSend("What's hot in the market today? Top 3 momentum stocks with clear catalyst, volume confirmation, and 150 SMA setup. Filter out noise.")} style={{...C.btn(""),marginBottom:6,fontSize:11}}>🔥 What's hot ↗</button>
-                  <button type="button" onClick={()=>quickSend("Give me my morning briefing. Analyze my open positions vs current market conditions and BTC price. What do I need to watch today?")} style={{...C.btn(""),marginBottom:6,fontSize:11}}>🌅 Morning briefing ↗</button>
-                  <button type="button" onClick={()=>generateTradingDiary(journalMonth)} disabled={diaryLoading} style={{...C.btn("green"),marginBottom:0,fontSize:11,fontWeight:700,opacity:diaryLoading?0.6:1}}>📄 {diaryLoading?'Generating…':'Trading Diary (.docx)'}</button>
+                  <button type="button" onClick={()=>setTab('stats')} style={{...C.btn(""),marginBottom:6,fontSize:11}}>Statistics &amp; Rank</button>
+                  <button type="button" onClick={()=>quickSend("What's hot in the market today? Top 3 momentum stocks with clear catalyst, volume confirmation, and 150 SMA setup. Filter out noise.")} style={{...C.btn(""),marginBottom:6,fontSize:11}}>Whats Hot ↗</button>
+                  <button type="button" onClick={()=>quickSend("Give me my morning briefing. Analyze my open positions vs current market conditions and BTC price. What do I need to watch today?")} style={{...C.btn(""),marginBottom:6,fontSize:11}}>Morning Briefing ↗</button>
+                  <button type="button" onClick={()=>generateTradingDiary(journalMonth)} disabled={diaryLoading} style={{...C.btn("green"),marginBottom:0,fontSize:11,fontWeight:700,opacity:diaryLoading?0.6:1}}>{diaryLoading?'Generating…':'Trading Diary (.docx)'}</button>
                 </div>
                 {/* Username */}
                 <div style={C.card}>
@@ -1854,9 +1976,18 @@ ${skillJournal ? `\nSKILL JOURNAL (${username}'s own recorded lessons — refere
                     const px = prices[p.ticker]?.price;
                     const ch = prices[p.ticker]?.change;
                     const unr = getUnrealized(p);
+                    const up = unr == null ? true : unr >= 0;
                     return (
-                      <tr key={p.id}>
-                        <td style={C.td}><span style={{ fontWeight: 700, fontSize: 10, color: txt }}>{p.ticker}</span><span style={{ display: "inline-block", fontSize: 7, padding: "1px 3px", borderRadius: 3, fontWeight: 700, marginLeft: 2, background: "rgba(63,185,80,0.15)", color: grn }}>L</span></td>
+                      <tr key={p.id} style={{ background: up ? "rgba(20,241,149,0.018)" : "rgba(255,45,85,0.018)" }}
+                        onMouseEnter={e => e.currentTarget.style.background = hover}
+                        onMouseLeave={e => e.currentTarget.style.background = up ? "rgba(20,241,149,0.018)" : "rgba(255,45,85,0.018)"}>
+                        <td style={C.td}>
+                          <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
+                            <span style={{ width: 3, height: 16, background: up ? grn : red, boxShadow: `0 0 6px ${up ? grn : red}`, flexShrink: 0 }} />
+                            <span style={{ fontWeight: 700, fontSize: 13, color: txt, fontFamily: display }}>{p.ticker}</span>
+                            <span style={{ display: "inline-block", fontSize: 7, padding: "1px 3px", borderRadius: 2, fontWeight: 700, marginLeft: 1, background: `rgba(20,241,149,0.15)`, color: grn }}>L</span>
+                          </div>
+                        </td>
                         <td style={{ ...C.td, color: txt2 }}>{p.shares}</td>
                         <td style={C.td}>${p.entry.toFixed(2)}</td>
                         <td style={{ ...C.td, color: red }}>${p.stop.toFixed(2)}</td>
@@ -1946,12 +2077,19 @@ ${skillJournal ? `\nSKILL JOURNAL (${username}'s own recorded lessons — refere
                       const unr = getUnrealized(p);
                       const h = getHealth(p);
                       const isExp = expandedPos === p.id;
+                      const up = unr == null ? true : unr >= 0;
                       return (
                         <React.Fragment key={p.id}>
-                          <tr style={{ cursor: "pointer", background: isExp ? bg3 : "transparent" }} onClick={() => setExpandedPos(isExp ? null : p.id)}>
+                          <tr style={{ cursor: "pointer", background: isExp ? bg3 : (up ? "rgba(20,241,149,0.018)" : "rgba(255,45,85,0.018)") }}
+                            onClick={() => setExpandedPos(isExp ? null : p.id)}
+                            onMouseEnter={e => e.currentTarget.style.background = hover}
+                            onMouseLeave={e => e.currentTarget.style.background = isExp ? bg3 : (up ? "rgba(20,241,149,0.018)" : "rgba(255,45,85,0.018)")}>
                             <td style={C.td}>
-                              <span style={{ fontWeight: 700, fontSize: 12, color: txt }}>{p.ticker}</span>
-                              {MINER_TICKERS.has(p.ticker) && <span style={{ display: "inline-block", fontSize: 7, padding: "1px 3px", borderRadius: 3, marginLeft: 3, background: "rgba(210,153,34,0.2)", color: amb }}>₿</span>}
+                              <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
+                                <span style={{ width: 3, height: 16, background: up ? grn : red, boxShadow: `0 0 6px ${up ? grn : red}`, flexShrink: 0 }} />
+                                <span style={{ fontWeight: 700, fontSize: 13, color: txt, fontFamily: display }}>{p.ticker}</span>
+                                {MINER_TICKERS.has(p.ticker) && <span style={{ display: "inline-block", fontSize: 7, padding: "1px 3px", borderRadius: 2, marginLeft: 1, background: "rgba(255,184,0,0.15)", color: amb }}>₿</span>}
+                              </div>
                             </td>
                             <td style={{ ...C.td, color: txt2 }}>{p.shares}</td>
                             <td style={C.td}>${p.entry.toFixed(2)}</td>
@@ -1964,11 +2102,22 @@ ${skillJournal ? `\nSKILL JOURNAL (${username}'s own recorded lessons — refere
                             <td style={{ ...C.td, color: unr != null ? (unr >= 0 ? grn : red) : txt3, fontWeight: unr != null ? 600 : 400 }}>
                               {unr != null ? (unr >= 0 ? "+" : "") + "$" + Math.abs(unr).toFixed(0) : "—"}
                             </td>
-                            <td style={{ ...C.td, color: healthColor(h), fontWeight: 700 }}>
-                              {h != null ? h + "/10" : "—"}
+                            <td style={C.td}>
+                              {h != null ? (
+                                <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
+                                  <div style={{ width: 46, height: 4, background: "#1a1a26", borderRadius: 2, overflow: "hidden" }}>
+                                    <div style={{ width: `${h * 10}%`, height: "100%", background: healthColor(h), boxShadow: `0 0 6px ${healthColor(h)}`, borderRadius: 2 }} />
+                                  </div>
+                                  <span style={{ fontSize: 9, color: healthColor(h), fontWeight: 700 }}>{h}</span>
+                                </div>
+                              ) : "—"}
                             </td>
                             <td style={{ ...C.td, color: red }}>-${((p.entry - p.stop) * p.shares).toFixed(0)}</td>
-                            <td style={{ ...C.td, color: txt2, fontSize: 9 }}>{p.pattern || "—"}</td>
+                            <td style={C.td}>
+                              {p.pattern ? (
+                                <span style={{ fontSize: 9.5, color: accent2, border: `1px solid rgba(0,229,255,0.3)`, padding: "1px 6px", borderRadius: 2, background: "rgba(0,229,255,0.06)" }}>{p.pattern}</span>
+                              ) : <span style={{ color: txt3 }}>—</span>}
+                            </td>
                             <td style={{ ...C.td, color: txt3, fontSize: 10, maxWidth: 120 }}>{p.notes || "—"}</td>
                             <td style={C.td}>
                               <span style={{ color: txt3, fontSize: 10, marginRight: 6 }}>{isExp ? "▲" : "▼"}</span>
@@ -2449,13 +2598,16 @@ ${skillJournal ? `\nSKILL JOURNAL (${username}'s own recorded lessons — refere
             ["🧠 Psychology Check","I want to add to a position. Ask me the emotional check questions before I do anything."],
             ["📓 Journal","Generate my monthly trading journal prompt for "+journalMonth],
           ].map(([label,prompt])=>(
-            <button key={label} type="button" onClick={()=>{setChatInput(prompt);}} style={{padding:"5px 10px",background:bg3,border:`1px solid ${bdr2}`,color:txt3,borderRadius:5,cursor:"pointer",fontFamily:"inherit",fontSize:10,transition:"all 0.15s"}}>{label}</button>
+            <button key={label} type="button" onClick={()=>{setChatInput(prompt);}} style={{padding:"5px 10px",background:elevated,border:`1px solid ${bdr}`,color:txt2,borderRadius:3,cursor:"pointer",fontFamily:mono,fontSize:10,transition:"all 0.15s"}}
+              onMouseEnter={e => { e.currentTarget.style.borderColor = accent; e.currentTarget.style.color = accent; }}
+              onMouseLeave={e => { e.currentTarget.style.borderColor = bdr; e.currentTarget.style.color = txt2; }}
+            >{label}</button>
           ))}
           {chatMessages.length>0&&<button type="button" onClick={()=>setChatMessages([])} style={{padding:"5px 10px",background:"none",border:`1px solid rgba(248,81,73,0.3)`,color:red,borderRadius:5,cursor:"pointer",fontFamily:"inherit",fontSize:10,marginLeft:"auto"}}>✕ Clear</button>}
         </div>
 
         {/* No API key warning */}
-        {!apiKey&&<div style={{...C.card,borderColor:"rgba(248,81,73,0.3)",marginBottom:10,flexShrink:0}}>
+        {!apiKey&&<div style={{...C.card,borderColor:"rgba(255,45,85,0.35)",marginBottom:10,flexShrink:0}}>
           <span style={{fontSize:11,color:red}}>⚠️ No API key &mdash; go to Dashboard tab to set it</span>
           <button type="button" onClick={()=>setTab("dash")} style={{marginLeft:12,padding:"3px 10px",background:"none",border:`1px solid ${bdr2}`,color:txt2,borderRadius:4,cursor:"pointer",fontSize:10,fontFamily:"inherit"}}>→ Dashboard</button>
         </div>}
@@ -2470,10 +2622,12 @@ ${skillJournal ? `\nSKILL JOURNAL (${username}'s own recorded lessons — refere
           {chatMessages.map((m,i)=>(
             <div key={m.ts||i} style={{display:"flex",flexDirection:"column",alignItems:m.role==="user"?"flex-end":"flex-start"}}>
               <div style={{
-                maxWidth:"85%",padding:"10px 14px",borderRadius:m.role==="user"?"12px 12px 4px 12px":"12px 12px 12px 4px",
-                background:m.role==="user"?"rgba(63,185,80,0.12)":bg2,
-                border:`1px solid ${m.role==="user"?"rgba(63,185,80,0.3)":bdr}`,
-                fontSize:12,color:txt,lineHeight:1.7,whiteSpace:"pre-wrap",wordBreak:"break-word"
+                maxWidth:"85%",padding:"10px 14px",borderRadius:m.role==="user"?"4px 4px 0 4px":"4px 4px 4px 0",
+                background:m.role==="user"?`rgba(255,107,0,0.10)`:bg2,
+                border:`1px solid ${m.role==="user"?"rgba(255,107,0,0.35)":bdr}`,
+                fontSize:12,color:txt,lineHeight:1.7,whiteSpace:"pre-wrap",wordBreak:"break-word",
+                fontFamily:mono,
+                boxShadow:m.role==="user"?"0 0 12px rgba(255,107,0,0.12)":"none"
               }}>{m.content}</div>
               <span style={{fontSize:9,color:txt3,marginTop:2,marginLeft:m.role==="user"?0:4}}>{m.role==="user"?"You":"Claude"}</span>
             </div>
@@ -2943,7 +3097,7 @@ ${skillJournal ? `\nSKILL JOURNAL (${username}'s own recorded lessons — refere
             type="button"
             onClick={runAgents}
             disabled={agentsRunning||!apiKey}
-            style={{padding:"10px 22px",background:agentsRunning?"#1a2a1a":"#238636",border:"none",color:"#fff",borderRadius:7,cursor:agentsRunning?"not-allowed":"pointer",fontFamily:"inherit",fontSize:13,fontWeight:700,display:"flex",alignItems:"center",gap:8,opacity:apiKey?1:0.5}}>
+            style={{padding:"10px 22px",background:agentsRunning?`rgba(255,107,0,0.08)`:`rgba(255,107,0,0.15)`,border:`1px solid rgba(255,107,0,0.45)`,color:accent,borderRadius:3,cursor:agentsRunning?"not-allowed":"pointer",fontFamily:mono,fontSize:13,fontWeight:700,display:"flex",alignItems:"center",gap:8,opacity:apiKey?1:0.5,textShadow:"0 0 10px rgba(255,107,0,0.6)",boxShadow:"0 0 14px rgba(255,107,0,0.2)"}}>
             {agentsRunning ? <><span style={{display:"inline-block",animation:"spin 1s linear infinite"}}>⟳</span> Running&hellip;</> : "▶ Run Full Scan"}
           </button>
         </div>
@@ -3008,11 +3162,11 @@ ${skillJournal ? `\nSKILL JOURNAL (${username}'s own recorded lessons — refere
           ].map(({key,label,icon,desc})=>{
             const st=agentStatus[key];
             const col=st==="running"?amb:st==="done"?grn:st==="error"?red:txt3;
-            const bg_=st==="running"?"rgba(210,153,34,0.08)":st==="done"?"rgba(35,134,54,0.08)":st==="error"?"rgba(248,81,73,0.08)":bg2;
+            const bg_=st==="running"?`rgba(255,184,0,0.08)`:st==="done"?`rgba(20,241,149,0.08)`:st==="error"?`rgba(255,45,85,0.08)`:bg2;
             const isStats=key==="stats";
             return <div key={key}
               onClick={isStats?()=>{setStatsPanel(p=>{const next=!p;if(next)fetchBackendStats();return next;});}:undefined}
-              style={{background:isStats&&statsPanel?"rgba(56,139,253,0.1)":bg_,border:`1px solid ${isStats&&statsPanel?"#388bfd":st==="idle"?bdr:col}`,borderRadius:8,padding:"10px 12px",transition:"all 0.3s",cursor:isStats?"pointer":"default"}}>
+              style={{background:isStats&&statsPanel?`rgba(0,229,255,0.08)`:bg_,border:`1px solid ${isStats&&statsPanel?accent2:st==="idle"?bdr:col}`,borderRadius:4,padding:"10px 12px",transition:"all 0.3s",cursor:isStats?"pointer":"default"}}>
               <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:4}}>
                 <span style={{fontSize:16}}>{icon}</span>
                 <span style={{fontSize:11,fontWeight:700,color:isStats&&statsPanel?"#388bfd":col,textTransform:"uppercase",letterSpacing:"0.08em"}}>{label}</span>
@@ -3418,23 +3572,23 @@ ${skillJournal ? `\nSKILL JOURNAL (${username}'s own recorded lessons — refere
     {/* ── Trading Diary Loading Overlay ── */}
     {diaryLoading && (
       <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.85)",zIndex:99999,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center"}}>
-        <div style={{background:"#161b22",border:"1px solid #30363d",borderRadius:12,padding:"40px 60px",textAlign:"center",maxWidth:400}}>
+        <div style={{background:bg3,border:`1px solid ${bdr2}`,borderRadius:4,padding:"40px 60px",textAlign:"center",maxWidth:400}}>
           <div style={{fontSize:40,marginBottom:16,animation:"spin 1.2s linear infinite",display:"inline-block"}}>📄</div>
-          <div style={{fontSize:18,fontWeight:700,color:"#c9d1d9",marginBottom:8}}>Generating Trading Diary</div>
-          <div style={{fontSize:12,color:"#8b949e",marginBottom:24}}>
+          <div style={{fontSize:18,fontWeight:700,color:txt,marginBottom:8,fontFamily:display}}>Generating Trading Diary</div>
+          <div style={{fontSize:12,color:txt2,marginBottom:24,fontFamily:mono}}>
             {apiKey ? 'Calling Claude AI for psychological analysis…' : 'Building your Word document…'}
           </div>
-          <div style={{height:4,background:"#21262d",borderRadius:2,overflow:"hidden"}}>
-            <div style={{height:"100%",background:"#3fb950",borderRadius:2,animation:"scanBar 1.5s ease-in-out infinite"}}/>
+          <div style={{height:4,background:bdr,borderRadius:2,overflow:"hidden"}}>
+            <div style={{height:"100%",background:accent,borderRadius:2,animation:"scanBar 1.5s ease-in-out infinite"}}/>
           </div>
-          <div style={{fontSize:10,color:"#484f58",marginTop:12}}>A save dialog will appear when ready</div>
+          <div style={{fontSize:10,color:txt3,marginTop:12}}>A save dialog will appear when ready</div>
         </div>
       </div>
     )}
 
     {/* ── Diary Result Toast ── */}
     {diaryResult && !diaryLoading && (
-      <div style={{position:"fixed",bottom:24,right:24,zIndex:9999,background:diaryResult.success?"rgba(35,134,54,0.95)":"rgba(248,81,73,0.95)",color:"#fff",borderRadius:8,padding:"12px 18px",fontSize:13,fontWeight:600,fontFamily:"inherit",boxShadow:"0 4px 20px rgba(0,0,0,0.4)",maxWidth:360}}>
+      <div style={{position:"fixed",bottom:24,right:24,zIndex:9999,background:diaryResult.success?`rgba(20,241,149,0.15)`:`rgba(255,45,85,0.15)`,border:`1px solid ${diaryResult.success?grn:red}`,color:txt,borderRadius:4,padding:"12px 18px",fontSize:13,fontWeight:600,fontFamily:mono,boxShadow:`0 0 24px ${diaryResult.success?"rgba(20,241,149,0.3)":"rgba(255,45,85,0.3)"}`,maxWidth:360}}>
         {diaryResult.success
           ? `✅ Diary saved successfully`
           : `❌ ${diaryResult.reason === 'cancelled' ? 'Save cancelled' : diaryResult.error || 'Failed to generate'}`
@@ -3452,6 +3606,7 @@ ${skillJournal ? `\nSKILL JOURNAL (${username}'s own recorded lessons — refere
       onPost={publishTweet}
       posting={tweetPosting}
     />}
+    </div>{/* end content wrapper */}
     </div>
   );
 }
