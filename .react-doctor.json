@@ -1,0 +1,25 @@
+{
+  "rules": {
+    "react-doctor/no-tiny-text": "off",
+    "react-doctor/no-inline-exhaustive-style": "off",
+    "react-doctor/control-has-associated-label": "off",
+    "react-doctor/label-has-associated-control": "off",
+    "react-doctor/click-events-have-key-events": "off",
+    "react-doctor/no-static-element-interactions": "off",
+    "react-doctor/client-localstorage-no-version": "off",
+    "react-doctor/js-hoist-intl": "off",
+    "react-doctor/no-layout-transition-inline": "off",
+    "react-doctor/rerender-state-only-in-handlers": "off",
+    "react-doctor/no-fetch-in-effect": "off",
+    "react-doctor/no-z-index-9999": "off",
+    "react-doctor/no-transition-all": "off",
+    "react-doctor/no-long-transition-duration": "off",
+    "react-doctor/prefer-module-scope-pure-function": "off",
+    "react-doctor/prefer-module-scope-static-value": "off",
+    "react-doctor/js-combine-iterations": "off",
+    "react-doctor/js-tosorted-immutable": "off",
+    "react-doctor/async-await-in-loop": "off",
+    "react-doctor/no-initialize-state": "off",
+    "deslop/unused-file": "off"
+  }
+}

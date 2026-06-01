@@ -292,8 +292,8 @@ function TweetModal({ draft, onTextChange, onClose, onPost, posting }) {
         />
         <div style={{fontSize:10,color:charColor,textAlign:"right",marginTop:2}}>{draft.text.length}/280</div>
         <div style={{display:"flex",gap:8,marginTop:12}}>
-          <button onClick={onClose} style={{flex:1,padding:"9px",background:"#1a1f2e",border:"1px solid #2a2f3e",color:"#aaa",borderRadius:6,cursor:"pointer",fontFamily:"inherit",fontSize:12}}>Cancel</button>
-          <button onClick={onPost} disabled={posting||!draft.text} style={{flex:2,padding:"9px",background:posting?"#0f5d8a":"#1d9bf0",border:"none",color:"#fff",borderRadius:6,cursor:"pointer",fontFamily:"inherit",fontSize:13,fontWeight:700}}>
+          <button type="button" onClick={onClose} style={{flex:1,padding:"9px",background:"#1a1f2e",border:"1px solid #2a2f3e",color:"#aaa",borderRadius:6,cursor:"pointer",fontFamily:"inherit",fontSize:12}}>Cancel</button>
+          <button type="button" onClick={onPost} disabled={posting||!draft.text} style={{flex:2,padding:"9px",background:posting?"#0f5d8a":"#1d9bf0",border:"none",color:"#fff",borderRadius:6,cursor:"pointer",fontFamily:"inherit",fontSize:13,fontWeight:700}}>
             {posting ? "Posting..." : "Post to X"}
           </button>
         </div>
@@ -322,6 +322,77 @@ const DATA_VERSION = "2026-05-30-v5";  // force reload from SQLite — fixed sto
     }
   } catch {}
 })();
+
+// ── Module-scope sub-components (moved here to avoid nested component definitions) ──
+
+function Btn({ label, variant, onClick }) {
+  return <button type="button" style={C.btn(variant)} onClick={onClick}>{label}</button>;
+}
+
+function Sk({ icon, label, desc, prompt, emg, onSkill }) {
+  return (
+    <button type="button" style={C.sk(emg)} onClick={() => onSkill(prompt, label)}>
+      <span style={{ fontSize: 15, width: 20, textAlign: "center", flexShrink: 0 }}>{icon}</span>
+      <div>
+        <div style={{ fontSize: 11, fontWeight: 600, color: emg ? red : txt }}>{label} ↗</div>
+        <div style={{ fontSize: 10, color: txt3, marginTop: 1 }}>{desc}</div>
+      </div>
+    </button>
+  );
+}
+
+function SpeedometerGauge({ value, title, gId }) {
+  const v   = value != null ? Math.max(0, Math.min(100, value)) : null;
+  const cx = 150, cy = 165;
+  const rOuter = 108, rInner = 93, rHole = 60;
+  const needleLen = rOuter - 22;
+  const pct = v != null ? v / 100 : 0.5;
+  const na  = Math.PI * (1 - pct);
+  const tipX = cx + needleLen * Math.cos(na);
+  const tipY = cy - needleLen * Math.sin(na);
+  const valCol = v == null ? '#484f58' : v <= 25 ? '#f85149' : v <= 45 ? '#d29922' : v <= 55 ? '#8b949e' : v <= 75 ? '#3fb950' : '#2f855a';
+  const zoneLbl = v == null ? '—' : v <= 25 ? 'EXTREME FEAR' : v <= 45 ? 'FEAR' : v <= 55 ? 'NEUTRAL' : v <= 75 ? 'GREED' : 'EXTREME GREED';
+  return (
+    <div style={{ flex: 1, minWidth: 0 }}>
+      <div style={{ fontSize: 10, fontWeight: 700, color: grn, textAlign: 'center', letterSpacing: '0.15em', textTransform: 'uppercase', marginBottom: 4 }}>{title}</div>
+      <svg viewBox="0 0 300 210" style={{ width: '100%', display: 'block' }}>
+        <defs>
+          <linearGradient id={`g${gId}`} x1="0%" y1="0%" x2="100%" y2="0%">
+            <stop offset="0%"   stopColor="#f85149"/>
+            <stop offset="50%"  stopColor="#d29922"/>
+            <stop offset="100%" stopColor="#3fb950"/>
+          </linearGradient>
+          <filter id={`gl${gId}`} x="-25%" y="-25%" width="150%" height="150%">
+            <feGaussianBlur stdDeviation="6" result="blur"/>
+            <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+          </filter>
+        </defs>
+        <path d={`M${cx-rOuter},${cy} A${rOuter},${rOuter} 0 0 1 ${cx+rOuter},${cy}`}
+              stroke={`url(#g${gId})`} strokeWidth="28" fill="none" strokeLinecap="round"
+              filter={`url(#gl${gId})`}/>
+        <path d={`M${cx-rInner},${cy} A${rInner},${rInner} 0 0 1 ${cx+rInner},${cy}`}
+              stroke="#1c2128" strokeWidth="2" fill="none"/>
+        <circle cx={cx} cy={cy} r={rHole} fill="#0d1117"/>
+        {v != null && <>
+          <line x1={cx} y1={cy} x2={tipX} y2={tipY}
+                stroke="white" strokeWidth={4} strokeLinecap="round"/>
+          <circle cx={cx} cy={cy} r={7} fill="white"/>
+          <circle cx={cx} cy={cy} r={3.5} fill="#0d1117"/>
+        </>}
+        <text x={cx} y={cy}
+              textAnchor="middle" fontFamily="Arial" fontSize={40} fontWeight="700"
+              fill={valCol} dy="10">
+          {v ?? '—'}
+        </text>
+        <text x={cx} y={cy + 38}
+              textAnchor="middle" fontFamily="Arial" fontSize={10} fontWeight="700"
+              fill={valCol} letterSpacing="1.5">
+          {zoneLbl}
+        </text>
+      </svg>
+    </div>
+  );
+}
 
 export default function DimaTradingOS() {
   // ── state ──────────────────────────────────────────────────
@@ -459,6 +530,9 @@ export default function DimaTradingOS() {
   useEffect(() => { const t = setInterval(() => setTime(getTime()), 1000); return () => clearInterval(t); }, []);
   useEffect(() => { fetchBTC(); const t = setInterval(fetchBTC, 30000); return () => clearInterval(t); }, []);
 
+  const calibrationRef = useRef(calibration);
+  calibrationRef.current = calibration;
+
   // Restore ELO calibration from backend if localStorage is empty (new machine / cleared cache)
   useEffect(() => {
     // Load account value from backend settings
@@ -484,7 +558,7 @@ export default function DimaTradingOS() {
         }
       }).catch(() => {});
 
-    if (calibration) return; // already loaded from localStorage
+    if (calibrationRef.current) return; // already loaded from localStorage
     fetch('http://localhost:3000/api/trades/settings/elo_calibration')
       .then(r => r.json())
       .then(d => {
@@ -497,6 +571,13 @@ export default function DimaTradingOS() {
       }).catch(() => {});
   }, []);
 
+  const positionsRef = useRef(positions);
+  positionsRef.current = positions;
+  const closedRef = useRef(closed);
+  closedRef.current = closed;
+  const pricesRef = useRef(prices);
+  pricesRef.current = prices;
+
   // ── Startup: load from backend DB (source of truth after first sync) ─────────
   useEffect(() => {
     // Load positions from backend — if backend has data, use it (overrides localStorage)
@@ -508,11 +589,11 @@ export default function DimaTradingOS() {
         // Sync to portfolio.service.js so Position Monitor agent reads correct data
         fetch('http://localhost:3000/api/portfolio/sync', {
           method:'POST', headers:{'Content-Type':'application/json'},
-          body: JSON.stringify({ positions: data, prices }),
+          body: JSON.stringify({ positions: data, prices: pricesRef.current }),
         }).catch(() => {});
       } else if (data && data.length === 0) {
         // Backend is empty — seed it with current state
-        syncPositions(positions).catch(() => {});
+        syncPositions(positionsRef.current).catch(() => {});
       }
     }).catch(() => {}); // backend offline — localStorage already loaded
 
@@ -522,7 +603,7 @@ export default function DimaTradingOS() {
         try { localStorage.setItem("dima_c5", JSON.stringify(data)); } catch {}
         console.log('[DB] Loaded', data.length, 'closed trades from backend');
       } else if (data && data.length === 0) {
-        syncClosedTrades(closed).catch(() => {});
+        syncClosedTrades(closedRef.current).catch(() => {});
       }
     }).catch(() => {});
   }, []); // runs once on mount
@@ -554,24 +635,28 @@ export default function DimaTradingOS() {
   }, [chatMessages]);
   useEffect(() => {
     if (tab === "stats") {
-      setTimeout(buildCharts, 120);
+      const tid = setTimeout(buildCharts, 120);
+      return () => clearTimeout(tid);
     } else {
       // Destroy chart instances when leaving stats tab so they rebuild cleanly on return
       if (eqChart.current) { eqChart.current.destroy(); eqChart.current = null; }
       if (ptChart.current) { ptChart.current.destroy(); ptChart.current = null; }
     }
-  }, [tab, closed]);
+  }, [tab, closed, buildCharts]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => { if (tab === "analytics") fetchAgentStats(); }, [tab]);
 
   // watchlist + backend
   useEffect(()=>{
     if(watchlist.length) refreshWatchPrices();
     const t=setInterval(refreshWatchPrices,60000); return()=>clearInterval(t);
-  },[watchlist.length]);
+  },[watchlist.length, refreshWatchPrices]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(()=>{
     fetchBackendStats();
     const t=setInterval(fetchBackendStats,30000); return()=>clearInterval(t);
   },[]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(()=>{
     fetchFearGreed(); fetchFearGreedCrypto();
     const t=setInterval(()=>{fetchFearGreed();fetchFearGreedCrypto();},300000); return()=>clearInterval(t);
@@ -670,7 +755,7 @@ export default function DimaTradingOS() {
     } catch {}
   }
 
-  function buildCharts() {
+  const buildCharts = useCallback(() => {
     if (eqRef.current && !eqChart.current) {
       // Equity curve: oldest first using seq (correct trade order), fallback to date
       const chronological = [...closed].sort((a, b) => {
@@ -705,7 +790,7 @@ export default function DimaTradingOS() {
         options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false }, tooltip: { callbacks: { label: c => c.parsed.y + "% win rate" }, backgroundColor: bg3, titleColor: txt2, bodyColor: txt, borderColor: bdr2, borderWidth: 1 } }, scales: { x: { ticks: { font: { size: 8 }, color: txt3, maxRotation: 45 }, grid: { display: false } }, y: { min: 0, max: 100, ticks: { font: { size: 8 }, color: txt3, callback: v => v + "%" }, grid: { color: bdr } } } },
       });
     }
-  }
+  }, [closed]);
 
   // ── journal prompt builder ─────────────────────────────────
   function buildJournalPrompt(month) {
@@ -1088,13 +1173,13 @@ Then NEW LINE: write a direct 2-4 sentence debrief to ${username}. Be honest. Na
   }
 
   // watchlist helpers
-  async function refreshWatchPrices() {
+  const refreshWatchPrices = useCallback(async () => {
     if (!watchlist.length) return;
     setWlLoading(true);
     const data = await fetchLivePrices(watchlist);
     if (Object.keys(data).length) setWatchPrices(data);
     setWlLoading(false);
-  }
+  }, [watchlist]);
   function addToWatchlist() {
     const raw = (wlInputRef.current ? wlInputRef.current.value : "") || wlInput || "";
     const t = raw.trim().toUpperCase();
@@ -1555,24 +1640,8 @@ ${skillJournal ? `\nSKILL JOURNAL (${username}'s own recorded lessons — refere
 
   const morningPrompt = `Morning briefing — ${new Date().toDateString()}.\nOpen positions: ${positions.map(p => `${p.ticker} ${p.shares}sh @ $${p.entry} stop $${p.stop} T1 $${p.t1}${p.pattern ? " [" + p.pattern + "]" : ""}`).join("; ")}.\nBTC: ${btc.price ? "$" + btc.price.toLocaleString() : "unknown"}. Unrealized P&L: ${unrealizedTotal >= 0 ? "+" : ""}$${unrealizedTotal.toFixed(0)}.\nGive me 3 key things to watch today and flag any positions at risk.`;
 
-  // ── sub-components ─────────────────────────────────────────
-  const Btn = ({ label, variant, onClick }) => <button style={C.btn(variant)} onClick={onClick}>{label}</button>;
-
-  const Sk = ({ icon, label, desc, prompt, emg }) => (
-    <button style={C.sk(emg)} onClick={() => logSkill(prompt, label)}>
-      <span style={{ fontSize: 15, width: 20, textAlign: "center", flexShrink: 0 }}>{icon}</span>
-      <div>
-        <div style={{ fontSize: 11, fontWeight: 600, color: emg ? red : txt }}>{label} ↗</div>
-        <div style={{ fontSize: 10, color: txt3, marginTop: 1 }}>{desc}</div>
-      </div>
-    </button>
-  );
-
-  const PriceRefreshBtn = () => (
-    <button onClick={refreshPrices} style={{ fontSize: 9, padding: "2px 8px", background: bg3, border: `1px solid ${bdr}`, color: priceLoading ? amb : txt3, borderRadius: 4, cursor: "pointer", fontFamily: "inherit" }}>
-      {priceLoading ? "updating..." : lastUpdated ? `↻ ${lastUpdated.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}` : "↻ prices"}
-    </button>
-  );
+  // ── sub-components (Btn and SpeedometerGauge and Sk defined at module scope above) ──
+  // PriceRefreshBtn inlined below as JSX (captures component state)
 
   // ═══════════════════════════════════════════════════════════
   //  RENDER
@@ -1585,7 +1654,7 @@ ${skillJournal ? `\nSKILL JOURNAL (${username}'s own recorded lessons — refere
         <div style={C.logo}>DIMA // TRADING OS</div>
         <div style={{ display: "flex", gap: 3, overflowX: "auto", flexShrink: 1, minWidth: 0 }}>
           {[["dash","Dashboard"],["pos","Positions"],["stats","Statistics"],["hist","History"],["analytics","Analytics"],["chat","Chat"],["skills","Skills"],["agents","🤖 Agents"]].map(([id, label]) => (
-            <button key={id} style={C.tab(tab === id)} onClick={() => setTab(id)}>{label}</button>
+            <button key={id} type="button" style={C.tab(tab === id)} onClick={() => setTab(id)}>{label}</button>
           ))}
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 10, flexShrink: 0 }}>
@@ -1629,8 +1698,8 @@ ${skillJournal ? `\nSKILL JOURNAL (${username}'s own recorded lessons — refere
                   style={{...C.fi,marginBottom:8,fontSize:16,textAlign:"center"}} placeholder="₪ amount"/>
                 <div style={{fontSize:14,color:grn,textAlign:"center",marginBottom:16,fontWeight:700}}>= ${depositUSD.toFixed(2)} USD</div>
                 <div style={{display:"flex",gap:8}}>
-                  <button onClick={()=>setShowDeposit(false)} style={{...C.btn(""),flex:1,marginBottom:0}}>Cancel</button>
-                  <button onClick={confirmDeposit} style={{...C.btn("green"),flex:2,marginBottom:0}}>+ Add ${depositUSD.toFixed(2)}</button>
+                  <button type="button" onClick={()=>setShowDeposit(false)} style={{...C.btn(""),flex:1,marginBottom:0}}>Cancel</button>
+                  <button type="button" onClick={confirmDeposit} style={{...C.btn("green"),flex:2,marginBottom:0}}>+ Add ${depositUSD.toFixed(2)}</button>
                 </div>
               </div>
             </div>}
@@ -1654,7 +1723,7 @@ ${skillJournal ? `\nSKILL JOURNAL (${username}'s own recorded lessons — refere
                     }}
                     style={{width:80,fontSize:9,padding:"2px 5px",background:bg3,border:`1px solid ${bdr}`,color:txt2,borderRadius:4,fontFamily:"inherit"}}
                   />
-                  <button onClick={()=>setShowDeposit(true)} style={{fontSize:8,padding:"2px 7px",background:"rgba(63,185,80,0.1)",border:`1px solid rgba(63,185,80,0.3)`,color:grn,borderRadius:4,cursor:"pointer",fontFamily:"inherit"}}>+ Deposit ₪</button>
+                  <button type="button" onClick={()=>setShowDeposit(true)} style={{fontSize:8,padding:"2px 7px",background:"rgba(63,185,80,0.1)",border:`1px solid rgba(63,185,80,0.3)`,color:grn,borderRadius:4,cursor:"pointer",fontFamily:"inherit"}}>+ Deposit ₪</button>
                 </div>
               </div>
               {[
@@ -1676,74 +1745,6 @@ ${skillJournal ? `\nSKILL JOURNAL (${username}'s own recorded lessons — refere
 
         {/* ── Market Sentiment + Quick Actions ── */}
         {(()=>{
-          // Proper speedometer with gradient arc + white needle
-          function SpeedometerGauge({value, title, gId}) {
-            const v   = value!=null ? Math.max(0,Math.min(100,value)) : null;
-            // Slightly smaller + more headroom for the glow filter
-            const cx=150, cy=165;
-            const rOuter=108, rInner=93, rHole=60;
-            const needleLen = rOuter - 22;
-            const pct = v!=null ? v/100 : 0.5;
-            // angle: π at left (0=extreme fear), 0 at right (100=extreme greed)
-            const na  = Math.PI*(1-pct);
-            const tipX = cx + needleLen*Math.cos(na);
-            const tipY = cy - needleLen*Math.sin(na);
-            const valCol = v==null?'#484f58':v<=25?'#f85149':v<=45?'#d29922':v<=55?'#8b949e':v<=75?'#3fb950':'#2f855a';
-            const zoneLbl = v==null?'—':v<=25?'EXTREME FEAR':v<=45?'FEAR':v<=55?'NEUTRAL':v<=75?'GREED':'EXTREME GREED';
-            return <div style={{flex:1,minWidth:0}}>
-              <div style={{fontSize:10,fontWeight:700,color:grn,textAlign:'center',letterSpacing:'0.15em',textTransform:'uppercase',marginBottom:4}}>{title}</div>
-              <svg viewBox="0 0 300 210" style={{width:'100%',display:'block'}}>
-                <defs>
-                  {/* Full red→yellow→green gradient — same as reference SVG */}
-                  <linearGradient id={`g${gId}`} x1="0%" y1="0%" x2="100%" y2="0%">
-                    <stop offset="0%"   stopColor="#f85149"/>
-                    <stop offset="50%"  stopColor="#d29922"/>
-                    <stop offset="100%" stopColor="#3fb950"/>
-                  </linearGradient>
-                  {/* Glow filter — expanded region so it never clips at viewBox edge */}
-                  <filter id={`gl${gId}`} x="-25%" y="-25%" width="150%" height="150%">
-                    <feGaussianBlur stdDeviation="6" result="blur"/>
-                    <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
-                  </filter>
-                </defs>
-
-                {/* 1. FULL GRADIENT ARC — always shows complete spectrum */}
-                <path d={`M${cx-rOuter},${cy} A${rOuter},${rOuter} 0 0 1 ${cx+rOuter},${cy}`}
-                      stroke={`url(#g${gId})`} strokeWidth="28" fill="none" strokeLinecap="round"
-                      filter={`url(#gl${gId})`}/>
-
-                {/* 2. INNER ARC — thin dark border ring */}
-                <path d={`M${cx-rInner},${cy} A${rInner},${rInner} 0 0 1 ${cx+rInner},${cy}`}
-                      stroke="#1c2128" strokeWidth="2" fill="none"/>
-
-                {/* 3. CENTER CIRCLE — dark hole, covers inner arc intersection */}
-                <circle cx={cx} cy={cy} r={rHole} fill="#0d1117"/>
-
-                {/* 4. NEEDLE — draw BEFORE text */}
-                {v!=null&&<>
-                  <line x1={cx} y1={cy} x2={tipX} y2={tipY}
-                        stroke="white" strokeWidth={4} strokeLinecap="round"/>
-                  <circle cx={cx} cy={cy} r={7} fill="white"/>
-                  <circle cx={cx} cy={cy} r={3.5} fill="#0d1117"/>
-                </>}
-
-                {/* 5. SCORE — drawn AFTER needle (on top), inside center circle */}
-                <text x={cx} y={cy}
-                      textAnchor="middle" fontFamily="Arial" fontSize={40} fontWeight="700"
-                      fill={valCol} dy="10">
-                  {v??'—'}
-                </text>
-
-                {/* 6. LABEL — below center */}
-                <text x={cx} y={cy+38}
-                      textAnchor="middle" fontFamily="Arial" fontSize={10} fontWeight="700"
-                      fill={valCol} letterSpacing="1.5">
-                  {zoneLbl}
-                </text>
-              </svg>
-            </div>;
-          }
-
           return (
             <div style={{display:"grid",gridTemplateColumns:"2fr 1fr",gap:10,marginBottom:10}}>
               {/* Speedometer gauges */}
@@ -1757,11 +1758,11 @@ ${skillJournal ? `\nSKILL JOURNAL (${username}'s own recorded lessons — refere
               <div style={{display:"flex",flexDirection:"column",gap:8}}>
                 <div style={C.card}>
                   <div style={{fontSize:9,fontWeight:700,color:txt3,textTransform:"uppercase",letterSpacing:"0.1em",marginBottom:8}}>QUICK ACTIONS</div>
-                  <button onClick={()=>setTab('pos')} style={{...C.btn("green"),marginBottom:6,fontSize:11,fontWeight:700}}>+ Add / Close Position</button>
-                  <button onClick={()=>setTab('stats')} style={{...C.btn(""),marginBottom:6,fontSize:11}}>📊 Statistics & Rank</button>
-                  <button onClick={()=>quickSend("What's hot in the market today? Top 3 momentum stocks with clear catalyst, volume confirmation, and 150 SMA setup. Filter out noise.")} style={{...C.btn(""),marginBottom:6,fontSize:11}}>🔥 What's hot ↗</button>
-                  <button onClick={()=>quickSend("Give me my morning briefing. Analyze my open positions vs current market conditions and BTC price. What do I need to watch today?")} style={{...C.btn(""),marginBottom:6,fontSize:11}}>🌅 Morning briefing ↗</button>
-                  <button onClick={()=>generateTradingDiary(journalMonth)} disabled={diaryLoading} style={{...C.btn("green"),marginBottom:0,fontSize:11,fontWeight:700,opacity:diaryLoading?0.6:1}}>📄 {diaryLoading?'Generating…':'Trading Diary (.docx)'}</button>
+                  <button type="button" onClick={()=>setTab('pos')} style={{...C.btn("green"),marginBottom:6,fontSize:11,fontWeight:700}}>+ Add / Close Position</button>
+                  <button type="button" onClick={()=>setTab('stats')} style={{...C.btn(""),marginBottom:6,fontSize:11}}>📊 Statistics & Rank</button>
+                  <button type="button" onClick={()=>quickSend("What's hot in the market today? Top 3 momentum stocks with clear catalyst, volume confirmation, and 150 SMA setup. Filter out noise.")} style={{...C.btn(""),marginBottom:6,fontSize:11}}>🔥 What's hot ↗</button>
+                  <button type="button" onClick={()=>quickSend("Give me my morning briefing. Analyze my open positions vs current market conditions and BTC price. What do I need to watch today?")} style={{...C.btn(""),marginBottom:6,fontSize:11}}>🌅 Morning briefing ↗</button>
+                  <button type="button" onClick={()=>generateTradingDiary(journalMonth)} disabled={diaryLoading} style={{...C.btn("green"),marginBottom:0,fontSize:11,fontWeight:700,opacity:diaryLoading?0.6:1}}>📄 {diaryLoading?'Generating…':'Trading Diary (.docx)'}</button>
                 </div>
                 {/* Username */}
                 <div style={C.card}>
@@ -1817,12 +1818,12 @@ ${skillJournal ? `\nSKILL JOURNAL (${username}'s own recorded lessons — refere
                             style={{...C.fi,marginBottom:0,fontSize:10,padding:"5px 8px"}}/>
                         </div>
                       ))}
-                      <button onClick={saveServerConfig} disabled={configSaving}
+                      <button type="button" onClick={saveServerConfig} disabled={configSaving}
                         style={{...C.btn(configSaved?"":"green"),marginTop:6,fontSize:10,fontWeight:700,opacity:configSaving?0.6:1}}>
                         {configSaving?"Saving…":configSaved?"✓ Saved":"Save Keys → .env"}
                       </button>
                       {(serverConfig?.hasAnthropicKey||apiKey)&&(
-                        <button onClick={testApiKey} disabled={keyTesting}
+                        <button type="button" onClick={testApiKey} disabled={keyTesting}
                           style={{background:"none",border:`1px solid rgba(63,185,80,0.3)`,color:grn,borderRadius:4,padding:"3px 8px",cursor:"pointer",fontSize:9,fontFamily:"inherit",width:"100%",marginTop:4}}>
                           {keyTesting?"⏳ Testing…":"⚡ Test Anthropic Key"}
                         </button>
@@ -1843,7 +1844,7 @@ ${skillJournal ? `\nSKILL JOURNAL (${username}'s own recorded lessons — refere
                 <span style={C.stit}>Open positions</span>
                 <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
                   <span style={{ fontSize: 9, color: txt3 }}>{positions.length} open</span>
-                  <PriceRefreshBtn />
+                  <button type="button" onClick={refreshPrices} style={{ fontSize: 9, padding: "2px 8px", background: bg3, border: `1px solid ${bdr}`, color: priceLoading ? amb : txt3, borderRadius: 4, cursor: "pointer", fontFamily: "inherit" }}>{priceLoading ? "updating..." : lastUpdated ? `↻ ${lastUpdated.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}` : "↻ prices"}</button>
                 </div>
               </div>
               <table style={C.tbl}>
@@ -1913,7 +1914,7 @@ ${skillJournal ? `\nSKILL JOURNAL (${username}'s own recorded lessons — refere
             {skillLog.length > 0 && <div style={C.card}>
               <div style={{ fontSize: 9, fontWeight: 700, color: txt3, textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: 6 }}>Skill log</div>
               {skillLog.slice(0, 5).map((s, i) => (
-                <div key={i} style={{ display: "flex", justifyContent: "space-between", padding: "4px 0", borderBottom: i < 4 ? `1px solid ${bdr}` : "none", fontSize: 10 }}>
+                <div key={s.name + i} style={{ display: "flex", justifyContent: "space-between", padding: "4px 0", borderBottom: i < 4 ? `1px solid ${bdr}` : "none", fontSize: 10 }}>
                   <span style={{ color: txt2 }}>{s.name}</span>
                   <span style={{ color: txt3, fontSize: 9 }}>{s.time.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</span>
                 </div>
@@ -1929,10 +1930,10 @@ ${skillJournal ? `\nSKILL JOURNAL (${username}'s own recorded lessons — refere
           <div>
             <div style={C.card}>
               <div style={C.sh}>
-                <span style={C.stit}>Open positions — click row for chart</span>
+                <span style={C.stit}>Open positions &mdash; click row for chart</span>
                 <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
                   <span style={{ fontSize: 10, color: txt3 }}>{positions.length} open</span>
-                  <PriceRefreshBtn />
+                  <button type="button" onClick={refreshPrices} style={{ fontSize: 9, padding: "2px 8px", background: bg3, border: `1px solid ${bdr}`, color: priceLoading ? amb : txt3, borderRadius: 4, cursor: "pointer", fontFamily: "inherit" }}>{priceLoading ? "updating..." : lastUpdated ? `↻ ${lastUpdated.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}` : "↻ prices"}</button>
                 </div>
               </div>
               <div style={{ overflowX: "auto" }}>
@@ -1971,7 +1972,7 @@ ${skillJournal ? `\nSKILL JOURNAL (${username}'s own recorded lessons — refere
                             <td style={{ ...C.td, color: txt3, fontSize: 10, maxWidth: 120 }}>{p.notes || "—"}</td>
                             <td style={C.td}>
                               <span style={{ color: txt3, fontSize: 10, marginRight: 6 }}>{isExp ? "▲" : "▼"}</span>
-                              <button onClick={e => { e.stopPropagation(); setPositions(prev => prev.filter(x => x.id !== p.id)); }} style={{ background: "none", border: "none", color: txt3, cursor: "pointer", fontSize: 13 }}>×</button>
+                              <button type="button" onClick={e => { e.stopPropagation(); setPositions(prev => prev.filter(x => x.id !== p.id)); }} style={{ background: "none", border: "none", color: txt3, cursor: "pointer", fontSize: 13 }}>×</button>
                             </td>
                           </tr>
                           {isExp && (
@@ -2009,13 +2010,13 @@ ${skillJournal ? `\nSKILL JOURNAL (${username}'s own recorded lessons — refere
                   style={{ ...C.fi, marginBottom: 5, color: form.pattern ? txt : txt3, borderColor: !form.pattern ? "rgba(248,81,73,0.5)" : bdr2 }}
                   value={form.pattern}
                   onChange={e => setForm(f => ({ ...f, pattern: e.target.value }))}>
-                  <option value="">— select pattern —</option>
+                  <option value="">&mdash; select pattern &mdash;</option>
                   {TRADE_PATTERNS.map(p => <option key={p} value={p}>{p}</option>)}
                 </select>
               </div>
               {/* RATIONALE — optional, feeds journal */}
               <div style={{ marginBottom: 5 }}>
-                <label style={C.fl}>Why I'm taking this trade <span style={{ color: txt3 }}>(optional — goes to journal)</span></label>
+                <label style={C.fl}>Why I'm taking this trade <span style={{ color: txt3 }}>(optional &mdash; goes to journal)</span></label>
                 <textarea
                   style={{ ...C.fi, resize: "vertical", minHeight: 52, lineHeight: 1.5 }}
                   value={form.rationale}
@@ -2079,11 +2080,11 @@ ${skillJournal ? `\nSKILL JOURNAL (${username}'s own recorded lessons — refere
                   {/* Emotional verdict — auto, not manual */}
                   <div style={{marginBottom:8}}>
                     <div style={{fontSize:8,fontWeight:700,color:txt3,textTransform:"uppercase",letterSpacing:"0.1em",marginBottom:5}}>
-                      🤖 Emotional Trade — Auto Detected
+                      🤖 Emotional Trade &mdash; Auto Detected
                     </div>
                     {autoEmotional ? (
                       <div style={{background:"rgba(248,81,73,0.08)",border:"1px solid rgba(248,81,73,0.3)",borderRadius:5,padding:"8px 10px"}}>
-                        <div style={{fontSize:11,fontWeight:700,color:red,marginBottom:6}}>🔴 EMOTIONAL — −150 ELO PENALTY</div>
+                        <div style={{fontSize:11,fontWeight:700,color:red,marginBottom:6}}>🔴 EMOTIONAL &mdash; &minus;150 ELO PENALTY</div>
                         {rules.map(r=>(
                           <div key={r.id} style={{fontSize:9,color:red,marginBottom:3}}>
                             ✗ <strong>{r.label}</strong><br/>
@@ -2093,7 +2094,7 @@ ${skillJournal ? `\nSKILL JOURNAL (${username}'s own recorded lessons — refere
                       </div>
                     ) : (
                       <div style={{background:"rgba(63,185,80,0.06)",border:"1px solid rgba(63,185,80,0.2)",borderRadius:5,padding:"6px 10px"}}>
-                        <div style={{fontSize:10,color:grn}}>✅ Technical trade — no emotional flags detected</div>
+                        <div style={{fontSize:10,color:grn}}>✅ Technical trade &mdash; no emotional flags detected</div>
                       </div>
                     )}
                   </div>
@@ -2158,7 +2159,7 @@ ${skillJournal ? `\nSKILL JOURNAL (${username}'s own recorded lessons — refere
                 <div style={{marginTop:12,width:"100%",background:"rgba(248,81,73,0.08)",border:"1px solid rgba(248,81,73,0.2)",borderRadius:6,padding:"10px 12px",textAlign:"center"}}>
                   <div style={{fontSize:10,color:red,fontWeight:700,marginBottom:6}}>⚠️ Not calibrated</div>
                   <div style={{fontSize:9,color:txt3,marginBottom:8}}>Run calibration to set your starting ELO based on {closed.length} trades</div>
-                  <button onClick={runCalibration} style={{...C.btn("green"),marginBottom:0,fontSize:11,fontWeight:700}}>▶ Run Calibration</button>
+                  <button type="button" onClick={runCalibration} style={{...C.btn("green"),marginBottom:0,fontSize:11,fontWeight:700}}>▶ Run Calibration</button>
                 </div>
               ) : (
                 <div style={{marginTop:10,width:"100%"}}>
@@ -2276,12 +2277,12 @@ ${skillJournal ? `\nSKILL JOURNAL (${username}'s own recorded lessons — refere
                   <div key={label} style={C.csm}><div style={C.sl}>{label}</div><div style={{ fontSize: 13, fontWeight: 700, color: col }}>{val}</div></div>
                 ))}
               </div>
-              <div style={{ fontSize: 9, color: txt3, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 4, marginTop: 8 }}>Profit factor goal — target 2.0</div>
+              <div style={{ fontSize: 9, color: txt3, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 4, marginTop: 8 }}>Profit factor goal &mdash; target 2.0</div>
               <div style={C.pb}><div style={{ height: "100%", borderRadius: 2, background: stats.pf >= 1.5 ? grn : stats.pf >= 1.0 ? amb : red, width: Math.min(stats.pf / 3 * 100, 100).toFixed(0) + "%", transition: "width 0.5s" }} /></div>
               <div style={{ display: "flex", justifyContent: "space-between", fontSize: 8, color: txt3, marginTop: 2 }}><span>0</span><span>1.5</span><span>2.0</span><span>3.0</span></div>
             </div>
             <div style={C.card}>
-              <div style={{ fontSize: 9, fontWeight: 700, color: txt3, textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: 8 }}>Rank Ladder — ELO</div>
+              <div style={{ fontSize: 9, fontWeight: 700, color: txt3, textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: 8 }}>Rank Ladder &mdash; ELO</div>
               {ELO_BANDS.map((band, i) => {
                 const eloIdx  = ELO_BANDS.findIndex(b => b.name === eloRank.name);
                 const iC = i === eloIdx;           // current rank
@@ -2343,7 +2344,7 @@ ${skillJournal ? `\nSKILL JOURNAL (${username}'s own recorded lessons — refere
           const fi = {...C.fi, marginBottom:6, fontSize:11};
           return <div style={{position:"fixed",top:0,left:0,right:0,bottom:0,background:"rgba(0,0,0,0.82)",zIndex:9000,display:"flex",alignItems:"center",justifyContent:"center"}} onClick={()=>setEditingTrade(null)}>
             <div style={{background:bg2,border:`1px solid ${bdr2}`,borderRadius:10,padding:24,width:460,maxHeight:"90vh",overflowY:"auto"}} onClick={e=>e.stopPropagation()}>
-              <div style={{fontSize:14,fontWeight:700,color:txt,marginBottom:16}}>✏️ Edit Trade — {editTradeData.ticker}</div>
+              <div style={{fontSize:14,fontWeight:700,color:txt,marginBottom:16}}>✏️ Edit Trade &mdash; {editTradeData.ticker}</div>
               <div style={C.fgr}>
                 <div><span style={C.fl}>Ticker</span><input value={editTradeData.ticker||""} onChange={e=>setEditTradeData(p=>({...p,ticker:e.target.value.toUpperCase()}))} style={fi}/></div>
                 <div><span style={C.fl}>Date</span><input type="date" value={editTradeData.date||""} onChange={e=>setEditTradeData(p=>({...p,date:e.target.value}))} style={fi}/></div>
@@ -2353,21 +2354,21 @@ ${skillJournal ? `\nSKILL JOURNAL (${username}'s own recorded lessons — refere
                 <div><span style={C.fl}>Entry $</span><input type="number" value={editTradeData.entry||""} onChange={e=>setEditTradeData(p=>({...p,entry:e.target.value}))} style={fi}/></div>
                 <div><span style={C.fl}>Exit $</span><input type="number" value={editTradeData.exit||""} onChange={e=>setEditTradeData(p=>({...p,exit:e.target.value}))} style={fi}/></div>
               </div>
-              <div><span style={C.fl}>P&L $ (auto-calculated — override if needed)</span>
+              <div><span style={C.fl}>P&L $ (auto-calculated &mdash; override if needed)</span>
                 <input type="number" value={editTradeData.pnl||""} onChange={e=>setEditTradeData(p=>({...p,pnl:e.target.value}))} style={fi} placeholder="Leave blank to auto-calc"/>
               </div>
               <div><span style={C.fl}>Pattern</span>
                 <select value={editTradeData.pattern||""} onChange={e=>setEditTradeData(p=>({...p,pattern:e.target.value}))} style={{...C.fi,marginBottom:6}}>
-                  <option value="">— select —</option>
+                  <option value="">&mdash; select &mdash;</option>
                   {TRADE_PATTERNS.map(p=><option key={p} value={p}>{p}</option>)}
                 </select>
               </div>
               <div><span style={C.fl}>Rationale (why I took it)</span><input value={editTradeData.rationale||""} onChange={e=>setEditTradeData(p=>({...p,rationale:e.target.value}))} style={fi}/></div>
               <div><span style={C.fl}>Notes</span><input value={editTradeData.notes||""} onChange={e=>setEditTradeData(p=>({...p,notes:e.target.value}))} style={fi}/></div>
               <div style={{display:"flex",gap:8,marginTop:8}}>
-                <button onClick={()=>setEditingTrade(null)} style={{...C.btn(""),flex:1,marginBottom:0}}>Cancel</button>
-                <button onClick={()=>{if(confirm("Delete this trade?")){{const next=closed.filter((_,i)=>i!==editingTrade);setClosed(next);try{localStorage.setItem("dima_c5",JSON.stringify(next));}catch{}setEditingTrade(null);}}}} style={{...C.btn("red"),flex:1,marginBottom:0}}>🗑 Delete</button>
-                <button onClick={save} style={{...C.btn("green"),flex:2,marginBottom:0}}>Save</button>
+                <button type="button" onClick={()=>setEditingTrade(null)} style={{...C.btn(""),flex:1,marginBottom:0}}>Cancel</button>
+                <button type="button" onClick={()=>{if(confirm("Delete this trade?")){{const next=closed.filter((_,i)=>i!==editingTrade);setClosed(next);try{localStorage.setItem("dima_c5",JSON.stringify(next));}catch{}setEditingTrade(null);}}}} style={{...C.btn("red"),flex:1,marginBottom:0}}>🗑 Delete</button>
+                <button type="button" onClick={save} style={{...C.btn("green"),flex:2,marginBottom:0}}>Save</button>
               </div>
             </div>
           </div>;
@@ -2375,7 +2376,7 @@ ${skillJournal ? `\nSKILL JOURNAL (${username}'s own recorded lessons — refere
 
         <div style={C.card}>
           <div style={C.sh}>
-            <span style={C.stit}>Trade history — swing only</span>
+            <span style={C.stit}>Trade history &mdash; swing only</span>
             <div style={{ display: "flex", gap: 6, alignItems: "center", flexWrap: "wrap" }}>
               <select value={histTicker} onChange={e => setHistTicker(e.target.value)} style={C.sel}>
                 {histTickers.map(t => <option key={t} value={t}>{t}</option>)}
@@ -2384,7 +2385,7 @@ ${skillJournal ? `\nSKILL JOURNAL (${username}'s own recorded lessons — refere
                 {["ALL","WIN","LOSS"].map(r => <option key={r} value={r}>{r}</option>)}
               </select>
               <span style={{ fontSize: 10, color: txt3 }}>{filteredHist.length} trades</span>
-              <button onClick={() => { if (confirm("Reset to all 24 default trades?")) { setClosed(TRADES.map(t => ({ ...t }))); if (eqChart.current) { eqChart.current.destroy(); eqChart.current = null; } } }} style={{ fontSize: 9, padding: "2px 6px", background: bg3, border: `1px solid ${bdr}`, color: txt3, borderRadius: 4, cursor: "pointer", fontFamily: "inherit" }}>↺ Reset</button>
+              <button type="button" onClick={() => { if (confirm("Reset to all 24 default trades?")) { setClosed(TRADES.map(t => ({ ...t }))); if (eqChart.current) { eqChart.current.destroy(); eqChart.current = null; } } }} style={{ fontSize: 9, padding: "2px 6px", background: bg3, border: `1px solid ${bdr}`, color: txt3, borderRadius: 4, cursor: "pointer", fontFamily: "inherit" }}>↺ Reset</button>
             </div>
           </div>
           <div style={{ overflowX: "auto" }}>
@@ -2398,7 +2399,7 @@ ${skillJournal ? `\nSKILL JOURNAL (${username}'s own recorded lessons — refere
                   const col      = t.pnl >= 0 ? grn : red;
                   const isEmo    = detectEmotional(t) || t.emotional;
                   const eloCol   = eloChg.total > 0 ? grn : eloChg.total < 0 ? red : txt3;
-                  return <tr key={i} style={{ background: isEmo ? "rgba(248,81,73,0.04)" : "transparent" }}>
+                  return <tr key={t.ticker + (t.date||'') + realIdx} style={{ background: isEmo ? "rgba(248,81,73,0.04)" : "transparent" }}>
                     <td style={{ ...C.td, color: txt3 }}>{t.date}</td>
                     <td style={C.td}>
                       <span style={{ fontWeight: 700, fontSize: 12, color: txt }}>{t.ticker}</span>
@@ -2426,7 +2427,7 @@ ${skillJournal ? `\nSKILL JOURNAL (${username}'s own recorded lessons — refere
                     </td>
                     <td style={C.td}>{t.pnl >= 0 ? "✅" : "❌"}</td>
                     <td style={C.td}>
-                      <button onClick={()=>{setEditTradeData({...t});setEditingTrade(realIdx);}}
+                      <button type="button" onClick={()=>{setEditTradeData({...t});setEditingTrade(realIdx);}}
                         style={{background:"none",border:`1px solid ${bdr2}`,color:txt3,borderRadius:4,padding:"2px 7px",cursor:"pointer",fontSize:10,fontFamily:"inherit"}}>✏️</button>
                     </td>
                   </tr>;
@@ -2448,15 +2449,15 @@ ${skillJournal ? `\nSKILL JOURNAL (${username}'s own recorded lessons — refere
             ["🧠 Psychology Check","I want to add to a position. Ask me the emotional check questions before I do anything."],
             ["📓 Journal","Generate my monthly trading journal prompt for "+journalMonth],
           ].map(([label,prompt])=>(
-            <button key={label} onClick={()=>{setChatInput(prompt);}} style={{padding:"5px 10px",background:bg3,border:`1px solid ${bdr2}`,color:txt3,borderRadius:5,cursor:"pointer",fontFamily:"inherit",fontSize:10,transition:"all 0.15s"}}>{label}</button>
+            <button key={label} type="button" onClick={()=>{setChatInput(prompt);}} style={{padding:"5px 10px",background:bg3,border:`1px solid ${bdr2}`,color:txt3,borderRadius:5,cursor:"pointer",fontFamily:"inherit",fontSize:10,transition:"all 0.15s"}}>{label}</button>
           ))}
-          {chatMessages.length>0&&<button onClick={()=>setChatMessages([])} style={{padding:"5px 10px",background:"none",border:`1px solid rgba(248,81,73,0.3)`,color:red,borderRadius:5,cursor:"pointer",fontFamily:"inherit",fontSize:10,marginLeft:"auto"}}>✕ Clear</button>}
+          {chatMessages.length>0&&<button type="button" onClick={()=>setChatMessages([])} style={{padding:"5px 10px",background:"none",border:`1px solid rgba(248,81,73,0.3)`,color:red,borderRadius:5,cursor:"pointer",fontFamily:"inherit",fontSize:10,marginLeft:"auto"}}>✕ Clear</button>}
         </div>
 
         {/* No API key warning */}
         {!apiKey&&<div style={{...C.card,borderColor:"rgba(248,81,73,0.3)",marginBottom:10,flexShrink:0}}>
-          <span style={{fontSize:11,color:red}}>⚠️ No API key — go to Dashboard tab to set it</span>
-          <button onClick={()=>setTab("dash")} style={{marginLeft:12,padding:"3px 10px",background:"none",border:`1px solid ${bdr2}`,color:txt2,borderRadius:4,cursor:"pointer",fontSize:10,fontFamily:"inherit"}}>→ Dashboard</button>
+          <span style={{fontSize:11,color:red}}>⚠️ No API key &mdash; go to Dashboard tab to set it</span>
+          <button type="button" onClick={()=>setTab("dash")} style={{marginLeft:12,padding:"3px 10px",background:"none",border:`1px solid ${bdr2}`,color:txt2,borderRadius:4,cursor:"pointer",fontSize:10,fontFamily:"inherit"}}>→ Dashboard</button>
         </div>}
 
         {/* Messages */}
@@ -2467,7 +2468,7 @@ ${skillJournal ? `\nSKILL JOURNAL (${username}'s own recorded lessons — refere
             <div style={{fontSize:11}}>Ask about chart analysis, position sizing, market conditions, or use the quick actions above</div>
           </div>}
           {chatMessages.map((m,i)=>(
-            <div key={i} style={{display:"flex",flexDirection:"column",alignItems:m.role==="user"?"flex-end":"flex-start"}}>
+            <div key={m.ts||i} style={{display:"flex",flexDirection:"column",alignItems:m.role==="user"?"flex-end":"flex-start"}}>
               <div style={{
                 maxWidth:"85%",padding:"10px 14px",borderRadius:m.role==="user"?"12px 12px 4px 12px":"12px 12px 12px 4px",
                 background:m.role==="user"?"rgba(63,185,80,0.12)":bg2,
@@ -2478,7 +2479,7 @@ ${skillJournal ? `\nSKILL JOURNAL (${username}'s own recorded lessons — refere
             </div>
           ))}
           {chatLoading&&<div style={{display:"flex",alignItems:"center",gap:8,color:txt3,fontSize:11}}>
-            <span style={{animation:"blink 1s ease-in-out infinite"}}>●</span> Claude is thinking...
+            <span style={{animation:"blink 1s ease-in-out infinite"}}>●</span> Claude is thinking&hellip;
           </div>}
           <div ref={chatEndRef}/>
         </div>
@@ -2500,9 +2501,9 @@ ${skillJournal ? `\nSKILL JOURNAL (${username}'s own recorded lessons — refere
             placeholder="Ask about your trades, chart setups, position sizing... (Enter to send, Shift+Enter for newline)"
             style={{...C.fi,marginBottom:0,flex:1,resize:"none",height:60,lineHeight:1.5}}
           />
-          <button onClick={sendChatMessage} disabled={chatLoading||!chatInput.trim()}
+          <button type="button" onClick={sendChatMessage} disabled={chatLoading||!chatInput.trim()}
             style={{...C.btn("green"),width:70,marginBottom:0,flexShrink:0,opacity:chatLoading||!chatInput.trim()?0.5:1}}>
-            {chatLoading?"...":"Send"}
+            {chatLoading?"…":"Send"}
           </button>
         </div>
       </div>}
@@ -2621,7 +2622,7 @@ ${skillJournal ? `\nSKILL JOURNAL (${username}'s own recorded lessons — refere
               <span style={C.stit}>Agent Signal Analytics</span>
               {agentStats && <span style={{ fontSize: 9, color: txt3, marginLeft: 8 }}>weights v{agentStats.weights?.version || 0} · {agentStats.totals?.signals || 0} signals tracked</span>}
             </div>
-            <button onClick={fetchAgentStats} disabled={agentStatsLoading} style={{ fontSize: 9, padding: "3px 9px", background: bg3, border: `1px solid ${bdr2}`, color: agentStatsLoading ? txt3 : txt2, borderRadius: 4, cursor: "pointer", fontFamily: "inherit" }}>
+            <button type="button" onClick={fetchAgentStats} disabled={agentStatsLoading} style={{ fontSize: 9, padding: "3px 9px", background: bg3, border: `1px solid ${bdr2}`, color: agentStatsLoading ? txt3 : txt2, borderRadius: 4, cursor: "pointer", fontFamily: "inherit" }}>
               {agentStatsLoading ? "Loading…" : "↺ Refresh"}
             </button>
           </div>
@@ -2634,7 +2635,7 @@ ${skillJournal ? `\nSKILL JOURNAL (${username}'s own recorded lessons — refere
             <div style={{ padding: "12px", background: bg3, borderRadius: 6 }}>
               <div style={{ fontSize: 12, color: txt2, fontWeight: 600, marginBottom: 6 }}>📡 Agent signals accumulating</div>
               <div style={{ fontSize: 11, color: txt3, lineHeight: 1.6 }}>
-                This section tracks <strong style={{color:txt2}}>AI-generated signals</strong> from the CEO/Scout agents — separate from your manually entered trades.
+                This section tracks <strong style={{color:txt2}}>AI-generated signals</strong> from the CEO/Scout agents &mdash; separate from your manually entered trades.
                 Signal win rate and weight adaptation begin after <strong style={{color:txt2}}>10+ resolved signals per setup type</strong> (~3 months of daily scans).
               </div>
               <div style={{ fontSize: 10, color: amb, marginTop: 8 }}>
@@ -2662,7 +2663,7 @@ ${skillJournal ? `\nSKILL JOURNAL (${username}'s own recorded lessons — refere
           <div style={C.card}>
             <div style={{ fontSize: 9, fontWeight: 700, color: txt3, textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: 10 }}>TA Signal Win Rates</div>
             {Object.keys(agentStats.taSignalMatrix || {}).filter(k => !k.includes("+")).length === 0 ? (
-              <div style={{ fontSize: 11, color: txt3, padding: "8px 0" }}>No resolved TA signals yet — win rates will appear after signals hit targets or stops.</div>
+              <div style={{ fontSize: 11, color: txt3, padding: "8px 0" }}>No resolved TA signals yet &mdash; win rates will appear after signals hit targets or stops.</div>
             ) : (
               <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
                 {Object.entries(agentStats.taSignalMatrix || {})
@@ -2771,7 +2772,7 @@ ${skillJournal ? `\nSKILL JOURNAL (${username}'s own recorded lessons — refere
                   {(agentStats.weights.changelog || []).slice(0, 15).map((entry, i) => {
                     const up = entry.new > entry.old;
                     return (
-                      <tr key={i}>
+                      <tr key={(entry.setup || entry.weightKey || '') + i}>
                         <td style={{ ...C.td, fontFamily: "monospace", fontSize: 9, color: txt2 }}>{entry.setup || entry.weightKey}</td>
                         <td style={{ ...C.td, color: txt3 }}>{entry.old}</td>
                         <td style={{ ...C.td, color: up ? grn : red, fontWeight: 600 }}>{entry.new}</td>
@@ -2797,6 +2798,7 @@ ${skillJournal ? `\nSKILL JOURNAL (${username}'s own recorded lessons — refere
               </span>
             </div>
             <button
+              type="button"
               onClick={runUniverseScan}
               disabled={universeScanRunning}
               style={{ fontSize: 9, padding: "3px 9px", background: universeScanRunning ? bg3 : "rgba(63,185,80,0.1)", border: `1px solid ${universeScanRunning ? bdr2 : grn}`, color: universeScanRunning ? txt3 : grn, borderRadius: 4, cursor: universeScanRunning ? "not-allowed" : "pointer", fontFamily: "inherit" }}
@@ -2818,14 +2820,14 @@ ${skillJournal ? `\nSKILL JOURNAL (${username}'s own recorded lessons — refere
                   ))}
                 </div>
               ) : (
-                <div style={{ fontSize: 11, color: txt3, fontStyle: "italic" }}>No dynamic tickers yet — click "Run Scan Now" to populate.</div>
+                <div style={{ fontSize: 11, color: txt3, fontStyle: "italic" }}>No dynamic tickers yet &mdash; click &ldquo;Run Scan Now&rdquo; to populate.</div>
               )}
               {universeStatus.recentHistory?.length > 0 && (
                 <div style={{ marginTop: 10 }}>
                   <div style={{ fontSize: 9, color: txt3, textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: 6 }}>Recent scans</div>
                   {[...universeStatus.recentHistory].reverse().slice(0, 3).map((h, i) => (
-                    <div key={i} style={{ fontSize: 10, color: txt2, padding: "4px 0", borderBottom: `1px solid ${bdr}` }}>
-                      {h.date?.slice(0,10)} — +{h.added?.length ?? 0} added, -{h.removed?.length ?? 0} removed → {h.total} dynamic
+                    <div key={h.date || i} style={{ fontSize: 10, color: txt2, padding: "4px 0", borderBottom: `1px solid ${bdr}` }}>
+                      {h.date?.slice(0,10)} &mdash; +{h.added?.length ?? 0} added, -{h.removed?.length ?? 0} removed &rarr; {h.total} dynamic
                       {h.added?.length > 0 && <span style={{ color: grn, marginLeft: 6 }}>{h.added.join(", ")}</span>}
                     </div>
                   ))}
@@ -2842,26 +2844,26 @@ ${skillJournal ? `\nSKILL JOURNAL (${username}'s own recorded lessons — refere
           <div>
             <div style={C.card}>
               <div style={{ fontSize: 9, fontWeight: 700, color: txt3, textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: 8 }}>Market scans</div>
-              <Sk icon="🔥" label="What's hot" desc="Trending stocks, earnings, BTC, Reddit momentum" prompt="run whats hot skill" />
-              <Sk icon="🏦" label="Smart money" desc="Sector ETF flows, institutional rotation, cycle" prompt="run smart money skill" />
-              <Sk icon="⚡" label="Full scan" desc="Both skills combined in one run" prompt="run both whats hot and smart money skills" />
-              <Sk icon="🔭" label="Stock scout" desc="Find stocks approaching 150 SMA entry zones" prompt="run stock scout skill find 150 SMA setups this week" />
+              <Sk icon="🔥" label="What's hot" desc="Trending stocks, earnings, BTC, Reddit momentum" prompt="run whats hot skill" onSkill={logSkill} />
+              <Sk icon="🏦" label="Smart money" desc="Sector ETF flows, institutional rotation, cycle" prompt="run smart money skill" onSkill={logSkill} />
+              <Sk icon="⚡" label="Full scan" desc="Both skills combined in one run" prompt="run both whats hot and smart money skills" onSkill={logSkill} />
+              <Sk icon="🔭" label="Stock scout" desc="Find stocks approaching 150 SMA entry zones" prompt="run stock scout skill find 150 SMA setups this week" onSkill={logSkill} />
             </div>
             <div style={C.card}>
               <div style={{ fontSize: 9, fontWeight: 700, color: txt3, textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: 8 }}>Emergency</div>
-              <Sk icon="🚨" label="BTC emergency" desc="BTC broke $79,500 — miner action plan" prompt="BTC just broke below 79500 what do I do with my miner positions" emg />
-              <Sk icon="🛡️" label="Crash protocol" desc="Review all stops — hold vs exit" prompt="market is crashing review all my stops and tell me what to do" emg />
+              <Sk icon="🚨" label="BTC emergency" desc="BTC broke $79,500 — miner action plan" prompt="BTC just broke below 79500 what do I do with my miner positions" emg onSkill={logSkill} />
+              <Sk icon="🛡️" label="Crash protocol" desc="Review all stops — hold vs exit" prompt="market is crashing review all my stops and tell me what to do" emg onSkill={logSkill} />
             </div>
           </div>
 
           <div>
             <div style={C.card}>
               <div style={{ fontSize: 9, fontWeight: 700, color: txt3, textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: 8 }}>Analysis & journal</div>
-              <Sk icon="🌅" label="Morning briefing" desc="Full context + flags for today's session" prompt={morningPrompt} />
-              <Sk icon="📊" label="Statistics" desc="Win rate, equity curve, pattern breakdown" prompt="show my trading statistics and equity curve swing only" />
-              <Sk icon="📋" label="Positions review" desc="All open trades, stops, targets" prompt="show all my open positions and current status with stops and targets" />
-              <Sk icon="₿" label="BTC + miners" desc="Current BTC vs $79.5K rule" prompt="check BTC price and miner position status" />
-              <Sk icon="🕐" label="Market hours" desc="Israel + NY time, market status" prompt="check market hours what time is it in Israel and New York is market open" />
+              <Sk icon="🌅" label="Morning briefing" desc="Full context + flags for today's session" prompt={morningPrompt} onSkill={logSkill} />
+              <Sk icon="📊" label="Statistics" desc="Win rate, equity curve, pattern breakdown" prompt="show my trading statistics and equity curve swing only" onSkill={logSkill} />
+              <Sk icon="📋" label="Positions review" desc="All open trades, stops, targets" prompt="show all my open positions and current status with stops and targets" onSkill={logSkill} />
+              <Sk icon="₿" label="BTC + miners" desc="Current BTC vs $79.5K rule" prompt="check BTC price and miner position status" onSkill={logSkill} />
+              <Sk icon="🕐" label="Market hours" desc="Israel + NY time, market status" prompt="check market hours what time is it in Israel and New York is market open" onSkill={logSkill} />
 
               {/* Monthly journal with month picker */}
               <div style={{ borderTop: `1px solid ${bdr}`, marginTop: 8, paddingTop: 10 }}>
@@ -2896,6 +2898,7 @@ ${skillJournal ? `\nSKILL JOURNAL (${username}'s own recorded lessons — refere
                 <div style={{marginTop:10,borderTop:`1px solid ${bdr}`,paddingTop:10}}>
                   <div style={{fontSize:9,fontWeight:700,color:txt3,textTransform:"uppercase",letterSpacing:"0.1em",marginBottom:6}}>📄 Trading Diary (.docx)</div>
                   <button
+                    type="button"
                     onClick={()=>generateTradingDiary(journalMonth)}
                     disabled={diaryLoading}
                     style={{...C.btn("green"),fontSize:12,fontWeight:700,padding:"10px",opacity:diaryLoading?0.6:1,letterSpacing:"0.03em"}}>
@@ -2911,7 +2914,7 @@ ${skillJournal ? `\nSKILL JOURNAL (${username}'s own recorded lessons — refere
             {skillLog.length > 0 && <div style={C.card}>
               <div style={{ fontSize: 9, fontWeight: 700, color: txt3, textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: 6 }}>Recent skill runs</div>
               {skillLog.map((s, i) => (
-                <div key={i} style={{ display: "flex", justifyContent: "space-between", padding: "5px 0", borderBottom: i < skillLog.length - 1 ? `1px solid ${bdr}` : "none", fontSize: 11 }}>
+                <div key={s.name + i} style={{ display: "flex", justifyContent: "space-between", padding: "5px 0", borderBottom: i < skillLog.length - 1 ? `1px solid ${bdr}` : "none", fontSize: 11 }}>
                   <span style={{ color: txt2 }}>{s.name}</span>
                   <span style={{ color: txt3, fontSize: 9 }}>{s.time.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</span>
                 </div>
@@ -2941,7 +2944,7 @@ ${skillJournal ? `\nSKILL JOURNAL (${username}'s own recorded lessons — refere
             onClick={runAgents}
             disabled={agentsRunning||!apiKey}
             style={{padding:"10px 22px",background:agentsRunning?"#1a2a1a":"#238636",border:"none",color:"#fff",borderRadius:7,cursor:agentsRunning?"not-allowed":"pointer",fontFamily:"inherit",fontSize:13,fontWeight:700,display:"flex",alignItems:"center",gap:8,opacity:apiKey?1:0.5}}>
-            {agentsRunning ? <><span style={{display:"inline-block",animation:"spin 1s linear infinite"}}>⟳</span> Running...</> : "▶ Run Full Scan"}
+            {agentsRunning ? <><span style={{display:"inline-block",animation:"spin 1s linear infinite"}}>⟳</span> Running&hellip;</> : "▶ Run Full Scan"}
           </button>
         </div>
 
@@ -2967,7 +2970,7 @@ ${skillJournal ? `\nSKILL JOURNAL (${username}'s own recorded lessons — refere
                 const chgColor=p?(p.change>=0?grn:red):txt3;
                 return <div key={ticker} style={{display:"inline-flex",alignItems:"center",gap:3,background:bg3,border:`1px solid ${bdr}`,borderRadius:4,padding:"2px 6px",marginRight:4,marginBottom:3,whiteSpace:"nowrap"}}>
                   <span style={{fontWeight:700,color:txt,fontSize:10}}>{ticker}</span>
-                  {p?<><span style={{color:txt2,fontSize:10}}>${p.price.toFixed(2)}</span><span style={{color:chgColor,fontSize:9}}>{p.change>=0?"+":""}{p.change.toFixed(2)}%</span></>:<span style={{color:txt3,fontSize:9}}>—</span>}
+                  {p?<><span style={{color:txt2,fontSize:10}}>${p.price.toFixed(2)}</span><span style={{color:chgColor,fontSize:9}}>{p.change>=0?"+":""}{p.change.toFixed(2)}%</span></>:<span style={{color:txt3,fontSize:9}}>&mdash;</span>}
                   <button type="button" onClick={()=>removeFromWatchlist(ticker)} style={{background:"none",border:"none",color:txt3,cursor:"pointer",fontSize:10,lineHeight:1,padding:"0 1px",marginLeft:1}}>×</button>
                 </div>;
               };
@@ -3031,7 +3034,7 @@ ${skillJournal ? `\nSKILL JOURNAL (${username}'s own recorded lessons — refere
             <button type="button" onClick={fetchBackendStats} style={{marginLeft:"auto",padding:"2px 8px",background:bg3,border:`1px solid ${bdr}`,color:txt3,borderRadius:4,cursor:"pointer",fontSize:9,fontFamily:"inherit"}}>↻ Refresh</button>
             <button type="button" onClick={()=>setStatsPanel(false)} style={{padding:"2px 8px",background:bg3,border:`1px solid ${bdr}`,color:txt3,borderRadius:4,cursor:"pointer",fontSize:9,fontFamily:"inherit"}}>✕ Close</button>
           </div>
-          {!backendConn&&!statsData&&<div style={{fontSize:11,color:txt3,textAlign:"center",padding:"20px 0"}}>Backend offline — start <code style={{background:bg3,padding:"1px 4px",borderRadius:3}}>node server.js</code> to see live stats</div>}
+          {!backendConn&&!statsData&&<div style={{fontSize:11,color:txt3,textAlign:"center",padding:"20px 0"}}>Backend offline &mdash; start <code style={{background:bg3,padding:"1px 4px",borderRadius:3}}>node server.js</code> to see live stats</div>}
           {statsData&&<Fragment>
             <div style={{display:"grid",gridTemplateColumns:"repeat(6,1fr)",gap:8,marginBottom:12}}>
               {[
@@ -3095,7 +3098,7 @@ ${skillJournal ? `\nSKILL JOURNAL (${username}'s own recorded lessons — refere
                 {(statsData.recentSignals||[]).slice(0,16).map((s,i)=>{
                   const outcome = s.hitTarget ? "✅" : s.hitStop ? "🛑" : s.confirmed ? "📌" : "⏳";
                   const isConfirmed = s.confirmed && !s.hitTarget && !s.hitStop;
-                  return <div key={i} style={{background:bg2,borderRadius:5,padding:"5px 8px",border:isConfirmed?`1px solid rgba(63,185,80,0.3)`:`1px solid transparent`}}>
+                  return <div key={s.signalId || s.ticker + i} style={{background:bg2,borderRadius:5,padding:"5px 8px",border:isConfirmed?`1px solid rgba(63,185,80,0.3)`:`1px solid transparent`}}>
                     <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
                       <span style={{fontSize:10,fontWeight:700,color:txt}}>{s.ticker}</span>
                       <span style={{fontSize:10}}>{outcome}</span>
@@ -3112,7 +3115,7 @@ ${skillJournal ? `\nSKILL JOURNAL (${username}'s own recorded lessons — refere
             {(statsData.weights?.changelog||[]).length>0&&<div style={{background:bg3,borderRadius:7,padding:"10px 12px"}}>
               <div style={{fontSize:10,fontWeight:700,color:txt3,textTransform:"uppercase",letterSpacing:"0.08em",marginBottom:6}}>🔄 Weight Change Log</div>
               {(statsData.weights.changelog||[]).slice(0,6).map((c,i)=>(
-                <div key={i} style={{fontSize:10,color:txt2,marginBottom:3,display:"flex",gap:8}}>
+                <div key={(c.weightKey||'')+i} style={{fontSize:10,color:txt2,marginBottom:3,display:"flex",gap:8}}>
                   <span style={{color:c.direction?.includes("↑")?grn:red}}>{c.direction}</span>
                   <span style={{color:txt3}}>{c.weightKey?.replace(/_/g,' ')}</span>
                   <span>{c.old}→<b style={{color:txt}}>{c.new}</b></span>
@@ -3127,14 +3130,14 @@ ${skillJournal ? `\nSKILL JOURNAL (${username}'s own recorded lessons — refere
         {agentReport&&<div style={{...C.card,marginBottom:12}}>
           <div style={{fontSize:11,fontWeight:700,color:amb,textTransform:"uppercase",letterSpacing:"0.1em",marginBottom:10}}>🧠 CEO REPORT</div>
           {(agentReport.alerts||[]).length>0&&<div style={{background:"rgba(248,81,73,0.08)",border:"1px solid rgba(248,81,73,0.25)",borderRadius:7,padding:"8px 12px",marginBottom:10}}>
-            {(agentReport.alerts||[]).map((a,i)=><div key={i} style={{fontSize:11,color:red,marginBottom:2}}>🚨 {a}</div>)}
+            {(agentReport.alerts||[]).map((a,i)=><div key={a.slice(0,20)+i} style={{fontSize:11,color:red,marginBottom:2}}>🚨 {a}</div>)}
           </div>}
           {agentReport.market_summary&&<div style={{fontSize:11,color:txt2,marginBottom:10,lineHeight:1.6}}>{agentReport.market_summary}</div>}
           <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:10}}>
             {(agentReport.priority_trades||[]).length>0&&<div style={{background:"rgba(63,185,80,0.06)",border:"1px solid rgba(63,185,80,0.2)",borderRadius:7,padding:"10px 12px"}}>
               <div style={{fontSize:10,fontWeight:700,color:grn,textTransform:"uppercase",letterSpacing:"0.08em",marginBottom:6}}>🎯 Priority Trades</div>
               {(agentReport.priority_trades||[]).map((t,i)=>(
-                <div key={i} style={{marginBottom:8,paddingBottom:8,borderBottom:i<(agentReport.priority_trades.length-1)?`1px solid ${bdr}`:"none"}}>
+                <div key={t.ticker+i} style={{marginBottom:8,paddingBottom:8,borderBottom:i<(agentReport.priority_trades.length-1)?`1px solid ${bdr}`:"none"}}>
                   <div style={{display:"flex",justifyContent:"space-between",marginBottom:2}}>
                     <span style={{fontSize:12,fontWeight:700,color:txt}}>{t.ticker}</span>
                     <span style={{fontSize:9,padding:"1px 6px",borderRadius:3,background:t.confidence==="high"?"rgba(63,185,80,0.2)":t.confidence==="medium"?"rgba(210,153,34,0.2)":"rgba(248,81,73,0.2)",color:t.confidence==="high"?grn:t.confidence==="medium"?amb:red,fontWeight:700}}>{t.confidence}</span>
@@ -3147,7 +3150,7 @@ ${skillJournal ? `\nSKILL JOURNAL (${username}'s own recorded lessons — refere
             </div>}
             <div style={{background:"rgba(100,180,255,0.05)",border:"1px solid rgba(100,180,255,0.2)",borderRadius:7,padding:"10px 12px"}}>
               <div style={{fontSize:10,fontWeight:700,color:"#64b4ff",textTransform:"uppercase",letterSpacing:"0.08em",marginBottom:6}}>⚡ Actions</div>
-              {(agentReport.actions||["—"]).map((a,i)=><div key={i} style={{fontSize:11,color:txt2,marginBottom:3,paddingLeft:8,borderLeft:"2px solid #64b4ff"}}>· {a}</div>)}
+              {(agentReport.actions||["—"]).map((a,i)=><div key={a.slice(0,20)+i} style={{fontSize:11,color:txt2,marginBottom:3,paddingLeft:8,borderLeft:"2px solid #64b4ff"}}>· {a}</div>)}
             </div>
           </div>
           {agentReport._raw&&(()=>{const parts=agentReport._raw.split(/\}\s*\n/);const msg=parts.slice(1).join('\n').trim();return msg?<div style={{background:bg3,borderRadius:6,padding:"10px 14px",fontSize:12,color:txt2,lineHeight:1.7,borderLeft:`3px solid ${amb}`}}><span style={{fontSize:10,fontWeight:700,color:amb,display:"block",marginBottom:4}}>CEO TO {username.toUpperCase()}:</span>{msg}</div>:null;})()}
@@ -3181,7 +3184,7 @@ ${skillJournal ? `\nSKILL JOURNAL (${username}'s own recorded lessons — refere
 
         {/* CEO stream (while running) */}
         {agentsRunning&&ceoStream&&<div style={{...C.card,marginBottom:12}}>
-          <div style={{fontSize:10,fontWeight:700,color:amb,textTransform:"uppercase",letterSpacing:"0.1em",marginBottom:8}}>🧠 CEO Thinking...</div>
+          <div style={{fontSize:10,fontWeight:700,color:amb,textTransform:"uppercase",letterSpacing:"0.1em",marginBottom:8}}>🧠 CEO Thinking&hellip;</div>
           <pre style={{fontSize:11,color:txt2,whiteSpace:"pre-wrap",margin:0,fontFamily:"inherit",lineHeight:1.6}}>{ceoStream}</pre>
         </div>}
 
@@ -3206,7 +3209,7 @@ ${skillJournal ? `\nSKILL JOURNAL (${username}'s own recorded lessons — refere
                   {isAuto&&!taken&&<span style={{fontSize:8,color:grn,padding:"1px 5px",background:"rgba(63,185,80,0.15)",borderRadius:3,whiteSpace:"nowrap"}}>✓ auto</span>}
                   {taken
                     ?<span style={{fontSize:9,color:txt3,padding:"2px 7px",background:"rgba(72,79,88,0.3)",borderRadius:3,whiteSpace:"nowrap"}}>taken</span>
-                    :<button onClick={()=>takeTradeFromSignal(sig)} style={{fontSize:9,padding:"3px 10px",background:"rgba(63,185,80,0.15)",border:"1px solid rgba(63,185,80,0.4)",borderRadius:4,color:grn,cursor:"pointer",fontFamily:"inherit",fontWeight:700,whiteSpace:"nowrap",flexShrink:0}}>↗ Take</button>
+                    :<button type="button" onClick={()=>takeTradeFromSignal(sig)} style={{fontSize:9,padding:"3px 10px",background:"rgba(63,185,80,0.15)",border:"1px solid rgba(63,185,80,0.4)",borderRadius:4,color:grn,cursor:"pointer",fontFamily:"inherit",fontWeight:700,whiteSpace:"nowrap",flexShrink:0}}>↗ Take</button>
                   }
                 </div>
               );
@@ -3221,7 +3224,7 @@ ${skillJournal ? `\nSKILL JOURNAL (${username}'s own recorded lessons — refere
           <div style={{maxHeight:260,overflowY:"auto",display:"flex",flexDirection:"column",gap:3}}>
             {agentLog.map((e,i)=>{
               const col=e.agent==="CEO"?amb:e.agent==="scout"?grn:e.agent==="hot"?"#ff6a3d":e.agent==="position"?"#64b4ff":txt3;
-              return <div key={i} style={{display:"flex",gap:8,fontSize:10,lineHeight:1.5}}>
+              return <div key={e.agent+e.time+i} style={{display:"flex",gap:8,fontSize:10,lineHeight:1.5}}>
                 <span style={{color:txt3,flexShrink:0,fontFamily:"monospace"}}>{e.time}</span>
                 <span style={{color:col,flexShrink:0,fontWeight:700,minWidth:60}}>{e.agent}</span>
                 <span style={{color:txt2}}>{e.text}</span>
@@ -3308,7 +3311,7 @@ ${skillJournal ? `\nSKILL JOURNAL (${username}'s own recorded lessons — refere
 
         return <div style={C.page}>
           <div style={{marginBottom:16}}>
-            <div style={{fontSize:15,fontWeight:700,color:txt,marginBottom:4}}>🧠 Agent Brains — Build Roadmap</div>
+            <div style={{fontSize:15,fontWeight:700,color:txt,marginBottom:4}}>🧠 Agent Brains &mdash; Build Roadmap</div>
             <div style={{fontSize:11,color:txt3}}>Checklist sourced from Agent Brains analysis · Checks saved automatically · Personal use focus</div>
           </div>
 
@@ -3320,7 +3323,7 @@ ${skillJournal ? `\nSKILL JOURNAL (${username}'s own recorded lessons — refere
             return <div style={{...C.card,marginBottom:16}}>
               <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
                 <span style={{fontSize:11,fontWeight:700,color:txt}}>Overall progress (personal)</span>
-                <span style={{fontSize:13,fontWeight:700,color:grn}}>{done} / {total} — {pct}%</span>
+                <span style={{fontSize:13,fontWeight:700,color:grn}}>{done} / {total} &mdash; {pct}%</span>
               </div>
               <div style={{height:8,background:bdr,borderRadius:4}}>
                 <div style={{height:"100%",width:pct+"%",background:pct>=80?grn:pct>=50?amb:red,borderRadius:4,transition:"width 0.4s"}}/>
@@ -3365,7 +3368,7 @@ ${skillJournal ? `\nSKILL JOURNAL (${username}'s own recorded lessons — refere
                     </div>
                     {it.effort&&<span style={{fontSize:9,padding:"2px 6px",borderRadius:4,border:`1px solid ${effortColor(it.effort)}33`,color:effortColor(it.effort),flexShrink:0,fontWeight:700}}>{it.effort}</span>}
                     {sec.locked&&<span style={{fontSize:9,color:txt3,flexShrink:0}}>🔒</span>}
-                    {isCustom&&<button onClick={()=>deleteTask(sec.id,it.id)} style={{background:"none",border:"none",color:txt3,cursor:"pointer",fontSize:14,padding:"0 2px",lineHeight:1,flexShrink:0}} title="Delete">×</button>}
+                    {isCustom&&<button type="button" onClick={()=>deleteTask(sec.id,it.id)} style={{background:"none",border:"none",color:txt3,cursor:"pointer",fontSize:14,padding:"0 2px",lineHeight:1,flexShrink:0}} title="Delete">×</button>}
                   </div>;
                 })}
                 {!sec.locked&&<div style={{display:"flex",gap:6,marginTop:6,alignItems:"center"}}>
@@ -3377,6 +3380,7 @@ ${skillJournal ? `\nSKILL JOURNAL (${username}'s own recorded lessons — refere
                     style={{...C.fi,marginBottom:0,flex:1,fontSize:10,padding:"5px 8px",borderStyle:"dashed",color:txt3}}
                   />
                   <button
+                    type="button"
                     onClick={()=>addTask(sec.id)}
                     disabled={!(taskInput[sec.id]||"").trim()}
                     style={{background:"none",border:`1px dashed ${bdr2}`,color:(taskInput[sec.id]||"").trim()?grn:txt3,borderRadius:5,padding:"5px 10px",cursor:"pointer",fontFamily:"inherit",fontSize:11,flexShrink:0,transition:"color 0.15s"}}>
@@ -3400,7 +3404,7 @@ ${skillJournal ? `\nSKILL JOURNAL (${username}'s own recorded lessons — refere
                 ["Risk","Daily loss cap only counts realized P&L — unrealized losses invisible"],
                 ["Stats","Server must run at 4:05 PM — if off, zero learning that day"],
               ].map(([agent,text],i)=>(
-                <div key={i} style={{display:"flex",gap:8,padding:"7px 8px",background:bg3,borderRadius:6,border:`1px solid ${bdr}`}}>
+                <div key={agent+i} style={{display:"flex",gap:8,padding:"7px 8px",background:bg3,borderRadius:6,border:`1px solid ${bdr}`}}>
                   <span style={{fontSize:9,fontWeight:700,color:amb,flexShrink:0,width:60}}>{agent}</span>
                   <span style={{fontSize:10,color:txt3,lineHeight:1.4}}>{text}</span>
                 </div>
