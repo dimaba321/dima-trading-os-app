@@ -3087,17 +3087,24 @@ ${skillJournal ? `\nSKILL JOURNAL (${username}'s own recorded lessons — refere
               </div>
             </div>
             {(statsData.recentSignals||[]).length>0&&<div style={{background:bg3,borderRadius:7,padding:"10px 12px",marginBottom:10}}>
-              <div style={{fontSize:10,fontWeight:700,color:txt3,textTransform:"uppercase",letterSpacing:"0.08em",marginBottom:8}}>📡 Recent Signals</div>
+              <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
+                <div style={{fontSize:10,fontWeight:700,color:txt3,textTransform:"uppercase",letterSpacing:"0.08em"}}>📡 Recent Signals</div>
+                <div style={{fontSize:9,color:txt3}}>{statsData.recentSignals.filter(s=>s.confirmed).length} confirmed · {statsData.recentSignals.length} total</div>
+              </div>
               <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:4}}>
-                {(statsData.recentSignals||[]).slice(0,8).map((s,i)=>{
-                  const outcome=s.hitTarget?"✅":s.hitStop?"🛑":"⏳";
-                  return <div key={i} style={{background:bg2,borderRadius:5,padding:"5px 8px"}}>
-                    <div style={{display:"flex",justifyContent:"space-between"}}>
+                {(statsData.recentSignals||[]).slice(0,16).map((s,i)=>{
+                  const outcome = s.hitTarget ? "✅" : s.hitStop ? "🛑" : s.confirmed ? "📌" : "⏳";
+                  const isConfirmed = s.confirmed && !s.hitTarget && !s.hitStop;
+                  return <div key={i} style={{background:bg2,borderRadius:5,padding:"5px 8px",border:isConfirmed?`1px solid rgba(63,185,80,0.3)`:`1px solid transparent`}}>
+                    <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
                       <span style={{fontSize:10,fontWeight:700,color:txt}}>{s.ticker}</span>
                       <span style={{fontSize:10}}>{outcome}</span>
                     </div>
                     <div style={{fontSize:8,color:txt3}}>{(s.setupType||'').replace(/_/g,' ')}</div>
-                    <div style={{fontSize:8,color:amb}}>score {s.score}</div>
+                    <div style={{display:"flex",gap:4,alignItems:"center",marginTop:1}}>
+                      <span style={{fontSize:8,color:amb}}>score {s.score}</span>
+                      {isConfirmed&&<span style={{fontSize:7,padding:"1px 4px",borderRadius:3,background:"rgba(63,185,80,0.15)",color:grn}}>IN TRADE</span>}
+                    </div>
                   </div>;
                 })}
               </div>
