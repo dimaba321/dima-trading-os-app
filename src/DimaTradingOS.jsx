@@ -482,6 +482,8 @@ export default function DimaTradingOS() {
   const [agentStatsLoading, setAgentStatsLoading] = useState(false);
   const [universeStatus, setUniverseStatus] = useState(null);
   const [universeScanRunning, setUniverseScanRunning] = useState(false);
+  const [serverLogs, setServerLogs] = useState([]);
+  const serverLogEndRef = React.useRef(null);
   const [journalMonth, setJournalMonth] = useState(() => {
     const now = new Date();
     return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
@@ -668,6 +670,31 @@ export default function DimaTradingOS() {
       }
     }).catch(() => {});
   }, []); // runs once on mount
+
+  // Load server log history + subscribe to live log lines
+  useEffect(() => {
+    if (window.electronAPI?.openServerLogs) {
+      // Load history
+      window.electronAPI.getLogHistory?.().then(lines => {
+        if (lines?.length) setServerLogs(lines.map(l => l.line));
+      }).catch(() => {});
+      // Subscribe to live lines via ipcRenderer
+      try {
+        const { ipcRenderer } = window.require('electron');
+        ipcRenderer.on('log', (_, line) => {
+          setServerLogs(prev => {
+            const next = [...prev, line];
+            return next.length > 500 ? next.slice(-500) : next;
+          });
+        });
+      } catch {}
+    }
+  }, []);
+
+  // Auto-scroll server log to bottom when new lines arrive and tab is open
+  useEffect(() => {
+    if (tab === 'server') serverLogEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [serverLogs, tab]);
 
   // Load skill journal from backend on startup
   useEffect(() => {
@@ -1749,7 +1776,7 @@ ${skillJournal ? `\nSKILL JOURNAL (${username}'s own recorded lessons — refere
 
         {/* Tabs */}
         <div style={{ display: "flex", gap: 2, overflowX: "auto", flexShrink: 1, minWidth: 0 }}>
-          {[["dash","Dashboard"],["pos","Positions"],["stats","Statistics"],["hist","History"],["analytics","Analytics"],["chat","Chat"],["skills","Skills"],["agents","Agents ◇"]].map(([id, label]) => {
+          {[["dash","Dashboard"],["pos","Positions"],["stats","Statistics"],["hist","History"],["analytics","Analytics"],["chat","Chat"],["skills","Skills"],["agents","Agents ◇"],["server","⬡ Server"]].map(([id, label]) => {
             const on = tab === id;
             return (
               <button key={id} type="button" style={C.tab(on)} onClick={() => setTab(id)}
@@ -3612,6 +3639,34 @@ ${skillJournal ? `\nSKILL JOURNAL (${username}'s own recorded lessons — refere
       onPost={publishTweet}
       posting={tweetPosting}
     />}
+      {/* ── SERVER TAB ── */}
+      {tab === "server" && <div style={{...C.page, gap:0}}>
+        <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:10,padding:"0 2px"}}>
+          <div style={{display:"flex",alignItems:"center",gap:8}}>
+            <span style={{width:8,height:8,borderRadius:"50%",background:grn,boxShadow:`0 0 6px ${grn}`,display:"inline-block"}}/>
+            <span style={{fontSize:11,fontWeight:700,color:txt2,textTransform:"uppercase",letterSpacing:"0.1em",fontFamily:display}}>Backend Server Logs</span>
+            <span style={{fontSize:9,color:txt3,border:`1px solid ${bdr}`,padding:"1px 6px",borderRadius:2}}>{serverLogs.length} lines</span>
+          </div>
+          <button type="button" onClick={()=>setServerLogs([])} style={{fontSize:9,padding:"3px 10px",background:elevated,border:`1px solid ${bdr2}`,color:txt3,borderRadius:3,cursor:"pointer",fontFamily:mono}}>Clear</button>
+        </div>
+        <div style={{flex:1,overflowY:"auto",background:bg,border:`1px solid ${bdr}`,borderRadius:4,padding:"8px 12px",fontFamily:mono,fontSize:11}}>
+          {serverLogs.length === 0
+            ? <div style={{color:txt3,fontSize:10,fontStyle:"italic",padding:"20px 0",textAlign:"center"}}>No logs yet &mdash; backend output appears here in real time.</div>
+            : serverLogs.map((line, i) => {
+                const isWarn = line.includes('ERROR') || line.includes('error') || line.startsWith('⚠');
+                const isInfo = line.includes('INFO');
+                const col = isWarn ? red : isInfo ? grn : txt2;
+                return (
+                  <div key={i} style={{padding:"2px 0",borderBottom:`1px solid rgba(255,255,255,0.02)`,color:col,lineHeight:1.6}}>
+                    {line}
+                  </div>
+                );
+              })
+          }
+          <div ref={serverLogEndRef}/>
+        </div>
+      </div>}
+
     </div>{/* end content wrapper */}
     </div>
   );

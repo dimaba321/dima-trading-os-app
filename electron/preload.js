@@ -16,8 +16,9 @@ contextBridge.exposeInMainWorld('electronAPI', {
   // Trading Diary — generates .docx + native save dialog
   generateDiary: (payload) => ipcRenderer.invoke('generate-diary', payload),
 
-  // Server log window
-  openServerLogs: () => ipcRenderer.invoke('open-server-logs'),
+  // Server logs
+  openServerLogs:  () => ipcRenderer.invoke('open-server-logs'),
+  getLogHistory:   () => ipcRenderer.invoke('get-log-history'),
 
   // Detect we're in Electron
   isElectron: true,
