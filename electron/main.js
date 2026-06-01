@@ -92,17 +92,22 @@ function startBackend() {
   // Force UTF-8 so emoji in log messages don't appear as garbage on Windows
   backendProcess.stdout.setEncoding('utf8');
   backendProcess.stderr.setEncoding('utf8');
+  function emitLog(line) {
+    _backendLogs.push({ t: Date.now(), line });
+    if (_backendLogs.length > 500) _backendLogs.shift();
+    // Send to main app (Server tab)
+    if (mainWindow && !mainWindow.isDestroyed()) mainWindow.webContents.send('log', line);
+    // Also send to standalone log window if open
+    if (logWindow && !logWindow.isDestroyed()) logWindow.webContents.send('log', line);
+  }
+
   backendProcess.stdout.on('data', d => {
     process.stdout.write('[backend] ' + d);
-    _backendLogs.push({ t: Date.now(), line: d.trim() });
-    if (_backendLogs.length > 500) _backendLogs.shift();
-    if (logWindow && !logWindow.isDestroyed()) logWindow.webContents.send('log', d.trim());
+    d.trim().split('\n').forEach(line => { if (line.trim()) emitLog(line.trim()); });
   });
   backendProcess.stderr.on('data', d => {
     process.stderr.write('[backend] ' + d);
-    _backendLogs.push({ t: Date.now(), line: '⚠ ' + d.trim() });
-    if (_backendLogs.length > 500) _backendLogs.shift();
-    if (logWindow && !logWindow.isDestroyed()) logWindow.webContents.send('log', '⚠ ' + d.trim());
+    d.trim().split('\n').forEach(line => { if (line.trim()) emitLog('⚠ ' + line.trim()); });
   });
 
   backendProcess.on('exit', (code, signal) => {
