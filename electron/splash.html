@@ -2,8 +2,9 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8"/>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
   <style>
-    /* ── CRITICAL: both html AND body need border-radius for transparent window clipping ── */
     * { margin: 0; padding: 0; box-sizing: border-box; }
 
     html {
@@ -17,101 +18,216 @@
       width: 420px; height: 470px;
       border-radius: 28px;
       overflow: hidden;
-      background: transparent;
-      font-family: 'SF Mono', 'Fira Code', monospace;
+      background: #07070d;
+      font-family: 'JetBrains Mono', 'SF Mono', monospace;
       position: relative;
     }
 
-    /* Background image fills the whole window — no gaps */
-    .bg {
+    /* ── ambient radial glows ── */
+    .glow-orange {
       position: absolute;
-      inset: 0;
-      background: url('../public/ICON.png') center center / cover no-repeat;
-      border-radius: 28px;
+      width: 360px; height: 260px;
+      top: -80px; right: -60px;
+      background: radial-gradient(ellipse, rgba(255,107,0,0.18) 0%, transparent 70%);
+      pointer-events: none;
+    }
+    .glow-cyan {
+      position: absolute;
+      width: 300px; height: 200px;
+      bottom: -40px; left: -40px;
+      background: radial-gradient(ellipse, rgba(0,229,255,0.10) 0%, transparent 70%);
+      pointer-events: none;
     }
 
-    /* Dark overlay — keeps text readable without hiding the art */
-    .overlay {
+    /* ── cyber grid overlay ── */
+    .grid {
       position: absolute;
       inset: 0;
-      border-radius: 28px;
-      background: linear-gradient(
-        to bottom,
-        rgba(13,17,23,0.05) 0%,
-        rgba(13,17,23,0.10) 50%,
-        rgba(13,17,23,0.75) 80%,
-        rgba(13,17,23,0.90) 100%
-      );
+      background-image:
+        linear-gradient(rgba(0,229,255,0.04) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(0,229,255,0.04) 1px, transparent 1px);
+      background-size: 44px 44px;
+      mask-image: radial-gradient(circle at 50% 50%, #000 30%, transparent 80%);
+      pointer-events: none;
     }
 
-    /* Content pinned to bottom */
+    /* ── logo image ── */
+    .logo-img {
+      position: absolute;
+      top: 60px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 120px;
+      height: 120px;
+      object-fit: contain;
+      filter: drop-shadow(0 0 28px rgba(255,107,0,0.55)) drop-shadow(0 0 8px rgba(255,107,0,0.3));
+      animation: float 3s ease-in-out infinite;
+    }
+
+    @keyframes float {
+      0%,100% { transform: translateX(-50%) translateY(0px); filter: drop-shadow(0 0 28px rgba(255,107,0,0.55)) drop-shadow(0 0 8px rgba(255,107,0,0.3)); }
+      50%      { transform: translateX(-50%) translateY(-6px); filter: drop-shadow(0 0 38px rgba(255,107,0,0.75)) drop-shadow(0 0 14px rgba(255,107,0,0.4)); }
+    }
+
+    /* ── HUD corner brackets on logo ── */
+    .logo-wrap {
+      position: absolute;
+      top: 56px; left: 50%;
+      transform: translateX(-50%);
+      width: 128px; height: 128px;
+    }
+    .logo-wrap::before, .logo-wrap::after {
+      content: "";
+      position: absolute;
+      width: 14px; height: 14px;
+      border: 1.5px solid rgba(255,107,0,0.8);
+    }
+    .logo-wrap::before { top: 0; left: 0; border-right: none; border-bottom: none; }
+    .logo-wrap::after  { bottom: 0; right: 0; border-left: none; border-top: none; }
+
+    /* ── content pinned to bottom ── */
     .content {
       position: absolute;
-      left: 0; right: 0; bottom: 28px;
+      left: 0; right: 0; bottom: 32px;
       display: flex;
       flex-direction: column;
       align-items: center;
     }
 
     .title {
-      color: #fff;
+      font-family: 'Chakra Petch', monospace;
+      color: #e9e9f2;
       font-size: 20px;
       font-weight: 700;
-      letter-spacing: 0.22em;
-      text-shadow: 0 2px 12px rgba(0,0,0,0.9);
+      letter-spacing: 0.18em;
     }
+    .title .acc { color: #ff6b00; text-shadow: 0 0 14px rgba(255,107,0,0.7); }
+    .title .sep { color: #51516a; margin: 0 6px; }
 
     .subtitle {
-      color: rgba(255,255,255,0.50);
-      font-size: 10px;
+      color: #8b8ba6;
+      font-size: 9px;
       letter-spacing: 0.28em;
-      margin-top: 4px;
+      margin-top: 5px;
       text-transform: uppercase;
     }
 
+    /* ── progress bar ── */
     .bar-wrap {
-      width: 200px;
-      height: 2px;
-      background: rgba(255,255,255,0.12);
+      width: 240px;
+      height: 3px;
+      background: #25253a;
       border-radius: 2px;
-      margin-top: 18px;
+      margin-top: 20px;
       overflow: hidden;
+      position: relative;
     }
 
     .bar {
       height: 100%;
-      background: #3fb950;
+      background: linear-gradient(90deg, #ff6b00, #ffb800);
       border-radius: 2px;
+      box-shadow: 0 0 10px rgba(255,107,0,0.8), 0 0 3px rgba(255,184,0,0.6);
       animation: load 2.8s ease-in-out forwards;
+    }
+
+    /* sweep shimmer on bar */
+    .bar::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(90deg, transparent, rgba(255,255,255,0.35), transparent);
+      animation: shimmer 1.2s ease-in-out infinite;
     }
 
     @keyframes load {
       0%   { width: 0%; }
-      50%  { width: 60%; }
-      85%  { width: 90%; }
+      40%  { width: 45%; }
+      70%  { width: 75%; }
+      90%  { width: 92%; }
       100% { width: 100%; }
     }
 
-    .status {
-      color: rgba(255,255,255,0.35);
-      font-size: 9px;
-      margin-top: 7px;
-      letter-spacing: 0.12em;
-      text-transform: uppercase;
-      animation: fade 1.5s ease-in-out infinite;
+    @keyframes shimmer {
+      0%   { transform: translateX(-100%); }
+      100% { transform: translateX(400%); }
     }
 
-    @keyframes fade { 0%,100%{opacity:0.4} 50%{opacity:0.9} }
+    /* ── status text cycling ── */
+    .status {
+      color: #51516a;
+      font-size: 9px;
+      margin-top: 9px;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+    }
+
+    /* ── version badge ── */
+    .version {
+      position: absolute;
+      top: 16px; right: 18px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 8px;
+      color: #51516a;
+      border: 1px solid #25253a;
+      padding: 2px 6px;
+      border-radius: 2px;
+      letter-spacing: 0.1em;
+    }
+
+    /* ── scanlines ── */
+    .scanlines {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      border-radius: 28px;
+      background: repeating-linear-gradient(
+        to bottom,
+        rgba(0,0,0,0) 0px, rgba(0,0,0,0) 2px,
+        rgba(0,0,0,0.07) 3px, rgba(0,0,0,0) 4px
+      );
+      opacity: 0.6;
+    }
   </style>
 </head>
 <body>
-  <div class="bg"></div>
-  <div class="overlay"></div>
+  <div class="glow-orange"></div>
+  <div class="glow-cyan"></div>
+  <div class="grid"></div>
+  <div class="scanlines"></div>
+
+  <div class="version">v1.0.5</div>
+
+  <div class="logo-wrap">
+    <img class="logo-img" src="../public/dima_trading_os_icon_256.png" alt=""/>
+  </div>
+
   <div class="content">
-    <div class="title">DIMA // TRADING OS</div>
+    <div class="title">
+      <span class="acc">DIMA</span>
+      <span class="sep">//</span>
+      <span>TRADING OS</span>
+    </div>
     <div class="subtitle">Intelligent Trading Platform</div>
     <div class="bar-wrap"><div class="bar"></div></div>
-    <div class="status">Starting backend...</div>
+    <div class="status" id="status">Initializing...</div>
   </div>
+
+  <script>
+    const msgs = [
+      'Initializing...',
+      'Starting backend...',
+      'Loading agents...',
+      'Connecting data feeds...',
+      'Ready.',
+    ];
+    let i = 0;
+    const el = document.getElementById('status');
+    const iv = setInterval(() => {
+      i++;
+      if (i >= msgs.length) { clearInterval(iv); return; }
+      el.textContent = msgs[i];
+    }, 600);
+  </script>
 </body>
 </html>
