@@ -8,14 +8,14 @@
     * { margin: 0; padding: 0; box-sizing: border-box; }
 
     html {
-      width: 420px; height: 470px;
+      width: 420px; height: 420px;
       border-radius: 28px;
       overflow: hidden;
       background: transparent;
     }
 
     body {
-      width: 420px; height: 470px;
+      width: 420px; height: 420px;
       border-radius: 28px;
       overflow: hidden;
       background: #07070d;
@@ -51,39 +51,13 @@
       pointer-events: none;
     }
 
-    /* ── logo image ── */
-    .logo-img {
+    /* ── full-screen icon background ── */
+    .icon-bg {
       position: absolute;
-      top: 60px;
-      left: 50%;
-      transform: translateX(-50%);
-      width: 120px;
-      height: 120px;
-      object-fit: contain;
-      filter: drop-shadow(0 0 28px rgba(255,107,0,0.55)) drop-shadow(0 0 8px rgba(255,107,0,0.3));
-      animation: float 3s ease-in-out infinite;
+      inset: 0;
+      background: url('../public/ICON.png') center center / cover no-repeat;
+      border-radius: 28px;
     }
-
-    @keyframes float {
-      0%,100% { transform: translateX(-50%) translateY(0px); filter: drop-shadow(0 0 28px rgba(255,107,0,0.55)) drop-shadow(0 0 8px rgba(255,107,0,0.3)); }
-      50%      { transform: translateX(-50%) translateY(-6px); filter: drop-shadow(0 0 38px rgba(255,107,0,0.75)) drop-shadow(0 0 14px rgba(255,107,0,0.4)); }
-    }
-
-    /* ── HUD corner brackets on logo ── */
-    .logo-wrap {
-      position: absolute;
-      top: 56px; left: 50%;
-      transform: translateX(-50%);
-      width: 128px; height: 128px;
-    }
-    .logo-wrap::before, .logo-wrap::after {
-      content: "";
-      position: absolute;
-      width: 14px; height: 14px;
-      border: 1.5px solid rgba(255,107,0,0.8);
-    }
-    .logo-wrap::before { top: 0; left: 0; border-right: none; border-bottom: none; }
-    .logo-wrap::after  { bottom: 0; right: 0; border-left: none; border-top: none; }
 
     /* ── content pinned to bottom ── */
     .content {
@@ -191,16 +165,13 @@
   </style>
 </head>
 <body>
+  <div class="icon-bg"></div>
   <div class="glow-orange"></div>
   <div class="glow-cyan"></div>
   <div class="grid"></div>
   <div class="scanlines"></div>
 
   <div class="version">v1.0.5</div>
-
-  <div class="logo-wrap">
-    <img class="logo-img" src="../public/dima_trading_os_icon_256.png" alt=""/>
-  </div>
 
   <div class="content">
     <div class="title">

@@ -143,13 +143,13 @@ let splashWindow = null;
 function createSplash() {
   splashWindow = new BrowserWindow({
     width:  420,
-    height: 470,
+    height: 420,
     frame:       false,
-    transparent: true,          // removes solid background so corners are truly clear
+    transparent: true,
     resizable:   false,
     alwaysOnTop: true,
     hasShadow:   true,
-    icon: path.join(__dirname, '..', 'public', 'dima_trading_os_icon_256.png'),
+    icon: path.join(__dirname, '..', 'public', 'ICON.png'),
     webPreferences: { contextIsolation: true },
   });
   splashWindow.loadFile(path.join(__dirname, 'splash.html'));
