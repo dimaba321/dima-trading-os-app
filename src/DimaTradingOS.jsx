@@ -1618,7 +1618,7 @@ ${skillJournal ? `\nSKILL JOURNAL (${username}'s own recorded lessons — refere
     generateTweetPreview('CLOSE',{ticker:ticker.toUpperCase(),entry:pos.entry,exit:parseFloat(exit),pnl});
     if (eqChart.current) { eqChart.current.destroy(); eqChart.current = null; }
     const pt = (pnl >= 0 ? "+" : "") + "$" + Math.abs(pnl).toFixed(2);
-    const eloChg = calculateEloChange(closedTrade);
+    const eloChg = calculateTradeScore(closedTrade);
     sp(`Closed ${ticker.toUpperCase()} at $${exit}. P&L: ${pt}. ELO change: ${eloChg.total > 0 ? '+' : ''}${eloChg.total}${eloChg.isEmotional?' (EMOTIONAL PENALTY -150)':''}. Was my rationale correct?`);
   }
 
@@ -2567,7 +2567,7 @@ ${skillJournal ? `\nSKILL JOURNAL (${username}'s own recorded lessons — refere
                 {filteredHist.map((t, i) => {
                   const realIdx  = closed.indexOf(t);
                   const eloEntry = eloTimeline[realIdx];
-                  const eloChg   = eloEntry?._elo ?? calculateEloChange(t);
+                  const eloChg   = eloEntry?._elo ?? calculateTradeScore(t);
                   const col      = t.pnl >= 0 ? grn : red;
                   const isEmo    = detectEmotional(t) || t.emotional;
                   const eloCol   = eloChg.total > 0 ? grn : eloChg.total < 0 ? red : txt3;
