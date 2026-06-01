@@ -1893,7 +1893,7 @@ ${skillJournal ? `\nSKILL JOURNAL (${username}'s own recorded lessons — refere
           return (
             <div style={{display:"grid",gridTemplateColumns:"2fr 1fr",gap:10,marginBottom:10}}>
               {/* Speedometer gauges */}
-              <div style={{...C.card,display:"flex",gap:10,padding:"10px 14px"}}>
+              <div style={{...C.card,display:"flex",gap:10,padding:"10px 14px",alignItems:"center",maxHeight:230,overflow:"hidden"}}>
                 <SpeedometerGauge value={fearGreed?.score?Math.round(fearGreed.score):null} title="STOCK MARKET" gId="stock"/>
                 <div style={{width:1,background:bdr,flexShrink:0}}/>
                 <SpeedometerGauge value={fngCrypto?.value?parseInt(fngCrypto.value):null} title="₿ CRYPTO" gId="crypto"/>
