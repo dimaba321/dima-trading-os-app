@@ -92,6 +92,31 @@ function startBackend() {
   backendProcess.stdout.on('data', d => process.stdout.write('[backend] ' + d));
   backendProcess.stderr.on('data', d => process.stderr.write('[backend] ' + d));
 
+  // Minimize the node console window — find conhost.exe child of node by PID
+  if (process.platform === 'win32' && backendProcess.pid) {
+    const pid = backendProcess.pid;
+    const ps1 = path.join(app.getPath('temp'), 'dima_minimize.ps1');
+    fs.writeFileSync(ps1, `
+param([int]$p)
+Start-Sleep -Milliseconds 1500
+$c = Get-WmiObject Win32_Process | Where-Object { $_.ParentProcessId -eq $p -and $_.Name -eq 'conhost.exe' }
+if ($c) {
+  $ch = Get-Process -Id $c.ProcessId -ErrorAction SilentlyContinue
+  if ($ch -and $ch.MainWindowHandle -ne 0) {
+    Add-Type -TypeDefinition @'
+using System; using System.Runtime.InteropServices;
+public class W { [DllImport("user32.dll")] public static extern bool ShowWindow(IntPtr h, int n); }
+'@
+    [W]::ShowWindow($ch.MainWindowHandle, 6)
+  }
+}
+`);
+    require('child_process').exec(
+      `powershell -NoProfile -ExecutionPolicy Bypass -File "${ps1}" -p ${pid}`,
+      { windowsHide: true }, () => {}
+    );
+  }
+
   backendProcess.on('exit', (code, signal) => {
     backendProcess = null;
     if (!_respawnEnabled) return;  // intentional shutdown — don't respawn
