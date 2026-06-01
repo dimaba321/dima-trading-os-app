@@ -209,8 +209,23 @@ if (isClean) {
   try {
     const ghPath = fs.existsSync('C:/Program Files/GitHub CLI/gh.exe')
       ? '"C:/Program Files/GitHub CLI/gh.exe"' : 'gh';
+
+    // Regenerate brochure with latest version baked in
+    console.log('[5/5] Regenerating brochure...');
+    try { execSync('node scripts/generate_brochure.js', { cwd: ROOT, stdio: 'inherit' }); } catch {}
+
+    // Upload README + brochure to the release
+    const readme   = path.join(ROOT, 'README.txt');
+    const brochure = path.join(ROOT, 'TRADING_OS_BROCHURE.pdf');
+    const uploads  = [readme, brochure].filter(f => fs.existsSync(f)).map(f => `"${f}"`).join(' ');
+    if (uploads) {
+      console.log('[5/5] Uploading README + brochure to GitHub release...');
+      execSync(`${ghPath} release upload v${newVer} ${uploads} --repo dimaba321/dima-trading-os-app --clobber`, { cwd: ROOT, stdio: 'inherit' });
+    }
+
+    // Publish (draft → latest)
     execSync(`${ghPath} release edit v${newVer} --draft=false --latest`, { cwd: ROOT, stdio: 'inherit' });
-    console.log(`\n✓ GitHub release v${newVer} published and set as latest`);
+    console.log(`\n✓ GitHub release v${newVer} published with installer + README + brochure`);
   } catch(e) {
     console.log('Note: Could not auto-publish release — run manually: gh release edit v' + newVer + ' --draft=false --latest');
   }
