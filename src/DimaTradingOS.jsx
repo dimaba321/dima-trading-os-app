@@ -562,8 +562,11 @@ export default function DimaTradingOS() {
   const [diaryLoading, setDiaryLoading]   = useState(false);
   const [diaryResult,  setDiaryResult]    = useState(null); // {success, filePath, error}
   // Auto-update
-  const [updateInfo,     setUpdateInfo]     = useState(null);
-  const [updateChecking, setUpdateChecking] = useState(false);
+  const [updateInfo,       setUpdateInfo]       = useState(null);
+  const [updateChecking,   setUpdateChecking]   = useState(false);
+  const [updateDownloading,setUpdateDownloading]= useState(false);
+  const [updateProgress,   setUpdateProgress]   = useState(0);
+  const [updateReady,      setUpdateReady]      = useState(false);
   const [appVersion,     setAppVersion]     = useState('1.0');
 
   const wlInputRef = React.useRef(null);
@@ -694,6 +697,10 @@ export default function DimaTradingOS() {
   // Subscribe to update-available notifications from main process
   useEffect(() => {
     window.electronAPI?.onUpdateAvailable?.(info => setUpdateInfo(info));
+    window.electronAPI?.onUpdateProgress?.(d => { setUpdateDownloading(true); setUpdateProgress(d.percent); });
+    window.electronAPI?.onUpdateDownloaded?.(() => { setUpdateDownloading(false); setUpdateReady(true); });
+    window.electronAPI?.onUpdateNotAvailable?.(() => { setUpdateChecking(false); });
+    window.electronAPI?.onUpdateError?.(() => { setUpdateDownloading(false); setUpdateChecking(false); });
     // Load real app version from Electron
     window.electronAPI?.getVersion?.().then(v => { if (v) setAppVersion(v); }).catch(() => {});
   }, []);
@@ -1922,25 +1929,35 @@ ${skillJournal ? `\nSKILL JOURNAL (${username}'s own recorded lessons — refere
                   <button type="button" onClick={()=>quickSend("What's hot in the market today? Top 3 momentum stocks with clear catalyst, volume confirmation, and 150 SMA setup. Filter out noise.")} style={{...C.btn(""),marginBottom:4,fontSize:10,padding:"5px 10px"}}>Whats Hot ↗</button>
                   <button type="button" onClick={()=>quickSend("Give me my morning briefing. Analyze my open positions vs current market conditions and BTC price. What do I need to watch today?")} style={{...C.btn(""),marginBottom:4,fontSize:10,padding:"5px 10px"}}>Morning Briefing ↗</button>
                   <button type="button" onClick={()=>generateTradingDiary(journalMonth)} disabled={diaryLoading} style={{...C.btn("green"),marginBottom:4,fontSize:10,fontWeight:700,padding:"5px 10px",opacity:diaryLoading?0.6:1}}>{diaryLoading?'Generating…':'Trading Diary (.docx)'}</button>
-                  {/* Update checker */}
-                  {updateInfo && (
-                    <div style={{marginTop:6,padding:"8px 10px",background:"rgba(255,107,0,0.1)",border:"1px solid rgba(255,107,0,0.4)",borderRadius:4}}>
-                      <div style={{fontSize:10,fontWeight:700,color:accent,marginBottom:4}}>Update Available — v{updateInfo.version}</div>
-                      <button type="button" onClick={()=>window.electronAPI?.openExternal?.(updateInfo.downloadUrl)}
-                        style={{...C.btn("green"),marginBottom:0,fontSize:10,padding:"5px 8px"}}>
-                        Download Update
+                  {/* Update section */}
+                  {updateReady ? (
+                    <div style={{marginTop:6,padding:"8px 10px",background:"rgba(63,185,80,0.1)",border:"1px solid rgba(63,185,80,0.4)",borderRadius:4}}>
+                      <div style={{fontSize:10,fontWeight:700,color:grn,marginBottom:6}}>✓ Update ready — v{updateInfo?.version}</div>
+                      <button type="button" onClick={()=>window.electronAPI?.installUpdate?.()}
+                        style={{...C.btn("green"),marginBottom:0,fontSize:10,padding:"5px 8px",fontWeight:700}}>
+                        ↺ Restart &amp; Install
                       </button>
                     </div>
-                  )}
+                  ) : updateDownloading ? (
+                    <div style={{marginTop:6,padding:"8px 10px",background:"rgba(255,107,0,0.08)",border:`1px solid rgba(255,107,0,0.3)`,borderRadius:4}}>
+                      <div style={{fontSize:10,color:accent,marginBottom:6}}>Downloading update... {updateProgress}%</div>
+                      <div style={{height:4,background:bdr,borderRadius:2,overflow:"hidden"}}>
+                        <div style={{width:`${updateProgress}%`,height:"100%",background:`linear-gradient(90deg,${accent},#ffb800)`,borderRadius:2,transition:"width 0.3s",boxShadow:`0 0 8px ${accent}`}}/>
+                      </div>
+                    </div>
+                  ) : updateInfo ? (
+                    <div style={{marginTop:6,padding:"8px 10px",background:"rgba(255,107,0,0.08)",border:`1px solid rgba(255,107,0,0.35)`,borderRadius:4}}>
+                      <div style={{fontSize:10,fontWeight:700,color:accent,marginBottom:5}}>⬆ Update Available — v{updateInfo.version}</div>
+                      <button type="button" onClick={()=>{ setUpdateDownloading(true); window.electronAPI?.startUpdateDownload?.(); }}
+                        style={{...C.btn("green"),marginBottom:0,fontSize:10,padding:"5px 8px",fontWeight:700}}>
+                        ⬇ Download &amp; Install
+                      </button>
+                    </div>
+                  ) : null}
                   <button type="button"
-                    disabled={updateChecking}
-                    onClick={async()=>{
-                      setUpdateChecking(true);
-                      const info = await window.electronAPI?.checkForUpdates?.();
-                      if (info) setUpdateInfo(info);
-                      setUpdateChecking(false);
-                    }}
-                    style={{...C.btn(""),marginTop:4,fontSize:10,padding:"4px 8px",marginBottom:0,opacity:updateChecking?0.6:1}}>
+                    disabled={updateChecking||updateDownloading}
+                    onClick={()=>{ setUpdateChecking(true); window.electronAPI?.checkForUpdates?.(); }}
+                    style={{...C.btn(""),marginTop:4,fontSize:10,padding:"4px 8px",marginBottom:0,opacity:(updateChecking||updateDownloading)?0.6:1}}>
                     {updateChecking?"Checking...":"Check for Updates"}
                   </button>
                 </div>

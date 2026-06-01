@@ -124,8 +124,9 @@ const env = {
 };
 
 try {
-  execSync('npx electron-builder --win --publish never', {
-    cwd: ROOT, stdio: 'inherit', env,
+  execSync('npx electron-builder --win --publish always', {
+    cwd: ROOT, stdio: 'inherit',
+    env: { ...env, GH_TOKEN: require('child_process').execSync('"C:/Program Files/GitHub CLI/gh.exe" auth token', { encoding:'utf8' }).trim() },
   });
 } finally {
   // ── Step 4: Restore original source ──────────────────────────────────────
@@ -199,28 +200,4 @@ if (isClean) {
 console.log('\nInstall note: Enable Windows Developer Mode before running .exe');
 console.log('  Settings → Privacy & Security → For Developers → Developer Mode: ON\n');
 
-// ── Create GitHub release after every build ───────────────────────────────────
-try {
-  const relDir  = path.join(ROOT, 'release');
-  const tagName = `v${newVer}`;
-  const exeFile = fs.existsSync(relDir)
-    ? fs.readdirSync(relDir).find(f => f.endsWith('.exe') && f.includes(newVer))
-    : null;
-  if (exeFile) {
-    const exePath = path.join(relDir, exeFile);
-    console.log(`[5/5] Creating GitHub release ${tagName}...`);
-    const ghPath = fs.existsSync('C:/Program Files/GitHub CLI/gh.exe')
-      ? '"C:/Program Files/GitHub CLI/gh.exe"' : 'gh';
-    execSync(
-      `${ghPath} release create ${tagName} "${exePath}" --title "Dima Trading OS ${tagName}" --notes "Release ${tagName}" --latest`,
-      { cwd: ROOT, stdio: 'inherit' }
-    );
-    console.log(`GitHub release ${tagName} created`);
-  } else {
-    console.log(`Note: No .exe with version ${newVer} found — skipping GitHub release.`);
-    console.log(`  Run manually: gh release create ${tagName} release\\*.exe`);
-  }
-} catch (e) {
-  console.log('Note: GitHub release creation failed (gh CLI not configured) —', e.message.slice(0, 80));
-  console.log('  Run manually: gh release create v' + newVer + ' release\\*.exe');
-}
+console.log(`\n✓ GitHub release v${newVer} published automatically by electron-builder`);

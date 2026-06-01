@@ -21,6 +21,16 @@ contextBridge.exposeInMainWorld('electronAPI', {
   getLogHistory:   () => ipcRenderer.invoke('get-log-history'),
   onServerLog:     (cb) => ipcRenderer.on('log', (_, line) => cb(line)),
 
+  // Auto-updater
+  checkForUpdates:       () => ipcRenderer.invoke('check-for-updates'),
+  startUpdateDownload:   () => ipcRenderer.invoke('start-update-download'),
+  installUpdate:         () => ipcRenderer.invoke('install-update'),
+  onUpdateAvailable:     (cb) => ipcRenderer.on('update-available',     (_, d) => cb(d)),
+  onUpdateProgress:      (cb) => ipcRenderer.on('update-progress',      (_, d) => cb(d)),
+  onUpdateDownloaded:    (cb) => ipcRenderer.on('update-downloaded',     ()    => cb()),
+  onUpdateNotAvailable:  (cb) => ipcRenderer.on('update-not-available',  ()    => cb()),
+  onUpdateError:         (cb) => ipcRenderer.on('update-error',          (_, e) => cb(e)),
+
   // Auto-update
   checkForUpdates:   () => ipcRenderer.invoke('check-for-updates'),
   onUpdateAvailable: (cb) => ipcRenderer.on('update-available', (_, info) => cb(info)),

@@ -1,84 +1,37 @@
 'use strict';
-const { app, dialog } = require('electron');
-const https = require('https');
+const { autoUpdater } = require('electron-updater');
+const { ipcMain }     = require('electron');
 
-// Check GitHub releases for newer version
-const RELEASES_API = 'https://api.github.com/repos/dimaba321/dima-trading-os-app/releases/latest';
+let _win = null;
 
-function fetchJSON(url) {
-  return new Promise((resolve, reject) => {
-    https.get(url, {
-      headers: {
-        'User-Agent': 'DimaTradingOS-Updater',
-        'Accept': 'application/vnd.github.v3+json',
-      },
-    }, (res) => {
-      let data = '';
-      res.on('data', d => data += d);
-      res.on('end', () => {
-        try { resolve(JSON.parse(data)); } catch (e) { reject(e); }
-      });
-    }).on('error', reject);
-  });
+function send(event, data) {
+  if (_win && !_win.isDestroyed()) _win.webContents.send(event, data);
 }
 
-function semverGt(a, b) {
-  const pa = a.replace(/^v/, '').split('.').map(Number);
-  const pb = b.replace(/^v/, '').split('.').map(Number);
-  for (let i = 0; i < 3; i++) {
-    if ((pa[i] || 0) > (pb[i] || 0)) return true;
-    if ((pa[i] || 0) < (pb[i] || 0)) return false;
-  }
-  return false;
+function initAutoUpdater(mainWindow) {
+  _win = mainWindow;
+
+  autoUpdater.autoDownload         = false;  // user must click Update
+  autoUpdater.autoInstallOnAppQuit = false;
+
+  autoUpdater.on('checking-for-update',  ()    => send('update-checking'));
+  autoUpdater.on('update-not-available', ()    => send('update-not-available'));
+  autoUpdater.on('error',                (e)   => send('update-error', e.message));
+  autoUpdater.on('update-available',     (info)=> send('update-available', { version: info.version }));
+  autoUpdater.on('download-progress',    (p)   => send('update-progress',  { percent: Math.round(p.percent) }));
+  autoUpdater.on('update-downloaded',    ()    => send('update-downloaded'));
+
+  // Renderer: start download
+  ipcMain.handle('start-update-download', () => autoUpdater.downloadUpdate());
+  // Renderer: quit and install
+  ipcMain.handle('install-update', () => autoUpdater.quitAndInstall(false, true));
+  // Renderer: manual check
+  ipcMain.handle('check-for-updates', () => autoUpdater.checkForUpdates());
 }
 
-async function checkForUpdates(silent = false) {
-  try {
-    const release = await fetchJSON(RELEASES_API);
-    if (!release || !release.tag_name) {
-      if (!silent) {
-        dialog.showMessageBox({
-          type: 'info',
-          title: 'Up to date',
-          message: 'You are running the latest version.',
-        });
-      }
-      return null;
-    }
-
-    const latestVer  = release.tag_name.replace(/^v/, '');
-    const currentVer = app.getVersion();
-
-    if (semverGt(latestVer, currentVer)) {
-      // Find .exe asset
-      const asset       = (release.assets || []).find(a => a.name.endsWith('.exe'));
-      const downloadUrl = asset?.browser_download_url || release.html_url;
-      return {
-        version:    latestVer,
-        downloadUrl,
-        releaseUrl: release.html_url,
-        notes:      release.body || '',
-      };
-    } else {
-      if (!silent) {
-        dialog.showMessageBox({
-          type:    'info',
-          title:   'Up to date',
-          message: `You are running the latest version (v${currentVer}).`,
-        });
-      }
-      return null;
-    }
-  } catch (e) {
-    if (!silent) {
-      dialog.showMessageBox({
-        type:    'warning',
-        title:   'Update check failed',
-        message: 'Could not check for updates. Check your internet connection.',
-      });
-    }
-    return null;
-  }
+// Silent background check 8s after app loads
+function checkSilently() {
+  setTimeout(() => autoUpdater.checkForUpdates().catch(() => {}), 8000);
 }
 
-module.exports = { checkForUpdates };
+module.exports = { initAutoUpdater, checkSilently };

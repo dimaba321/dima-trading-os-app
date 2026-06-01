@@ -4,7 +4,7 @@ const { spawn, execSync } = require('child_process');
 const http = require('http');
 const path = require('path');
 const fs   = require('fs');
-const { checkForUpdates } = require('./updater');
+const { initAutoUpdater, checkSilently } = require('./updater');
 
 // ── Keep userData on D: drive ────────────────────────────────────────────────
 app.setPath('userData', path.join(__dirname, '..', '.electron-data'));
@@ -379,20 +379,9 @@ app.whenReady().then(async () => {
     createWindow();
   }
 
-  // Silent update check — wait 8s for React to fully mount
-  setTimeout(async () => {
-    const update = await checkForUpdates(true);
-    if (update && mainWindow && !mainWindow.isDestroyed()) {
-      // Retry a few times to handle race condition
-      let sent = 0;
-      const send = () => {
-        if (!mainWindow || mainWindow.isDestroyed()) return;
-        mainWindow.webContents.send('update-available', update);
-        if (++sent < 3) setTimeout(send, 2000);
-      };
-      send();
-    }
-  }, 8000);
+  // Init auto-updater (electron-updater handles check, download, install)
+  initAutoUpdater(mainWindow);
+  checkSilently();
 
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) createWindow();
