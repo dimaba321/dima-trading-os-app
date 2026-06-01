@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      width: 100vw; height: 100vh;
+      background: #1a1a2e;
+      display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 24px;
+      font-family: 'JetBrains Mono', monospace;
+    }
+    .controls {
+      display: flex; flex-direction: column; align-items: center; gap: 10px;
+    }
+    .controls label {
+      font-size: 11px; color: #8b8ba6; letter-spacing: 0.12em; text-transform: uppercase;
+    }
+    .controls input[type=range] {
+      width: 300px; accent-color: #ff6b00; cursor: pointer;
+    }
+    .controls span {
+      font-size: 12px; color: #ff6b00; font-weight: 700; min-width: 40px; text-align: center;
+    }
+    .splash {
+      width: 420px; height: 420px;
+      border-radius: 28px;
+      position: relative;
+      background: transparent;
+      box-shadow: none;
+    }
+    /* Only the background layers get the fade mask */
+    .splash-bg {
+      position: absolute; inset: 0;
+      border-radius: 28px;
+      overflow: hidden;
+      -webkit-mask-image: linear-gradient(
+        to bottom,
+        black 0%,
+        black 50%,
+        rgba(0,0,0,0.7) 68%,
+        rgba(0,0,0,0.3) 80%,
+        transparent 100%
+      );
+      mask-image: linear-gradient(
+        to bottom,
+        black 0%,
+        black 50%,
+        rgba(0,0,0,0.7) 68%,
+        rgba(0,0,0,0.3) 80%,
+        transparent 100%
+      );
+    }
+    .icon-bg {
+      position: absolute; inset: 0;
+      background: url('http://localhost:8765/ICON.png') center 42% / 230% no-repeat;
+      border-radius: 28px;
+    }
+    /* bottom fades to fully transparent — desktop shows through */
+    .icon-fade {
+      position: absolute; inset: 0;
+      background: linear-gradient(
+        to bottom,
+        rgba(0,0,0,0)   0%,
+        rgba(0,0,0,0)   35%,
+        rgba(0,0,0,0.4) 55%,
+        rgba(0,0,0,0.8) 72%,
+        rgba(0,0,0,0.95) 82%,
+        rgba(0,0,0,0)   100%
+      );
+      pointer-events: none;
+    }
+    .glow-orange {
+      position: absolute; width: 360px; height: 260px; top: -80px; right: -60px;
+      background: radial-gradient(ellipse, rgba(255,107,0,0.18) 0%, transparent 70%);
+      pointer-events: none;
+    }
+    .glow-cyan {
+      position: absolute; width: 300px; height: 200px; bottom: -40px; left: -40px;
+      background: radial-gradient(ellipse, rgba(0,229,255,0.10) 0%, transparent 70%);
+      pointer-events: none;
+    }
+    .grid {
+      position: absolute; inset: 0;
+      background-image: linear-gradient(rgba(0,229,255,0.04) 1px, transparent 1px), linear-gradient(90deg, rgba(0,229,255,0.04) 1px, transparent 1px);
+      background-size: 44px 44px;
+      mask-image: radial-gradient(circle at 50% 30%, transparent 35%, #000 75%);
+      pointer-events: none;
+    }
+    .scanlines {
+      position: absolute; inset: 0;
+      background: repeating-linear-gradient(to bottom, rgba(0,0,0,0) 0px, rgba(0,0,0,0) 2px, rgba(0,0,0,0.07) 3px, rgba(0,0,0,0) 4px);
+      opacity: 0.6; pointer-events: none;
+    }
+    .corner-tl, .corner-br {
+      position: absolute; width: 18px; height: 18px;
+      border: 1.5px solid rgba(255,107,0,0.7);
+    }
+    .corner-tl { top: 18px; left: 18px; border-right: none; border-bottom: none; }
+    .corner-br { bottom: 18px; right: 18px; border-left: none; border-top: none; }
+    .version {
+      position: absolute; top: 14px; right: 20px;
+      font-size: 7px; color: #51516a; border: 1px solid #25253a;
+      padding: 2px 5px; border-radius: 2px; letter-spacing: 0.1em;
+      font-family: 'JetBrains Mono', monospace;
+    }
+    .content {
+      position: absolute; left: 0; right: 0; bottom: 28px;
+      display: flex; flex-direction: column; align-items: center;
+    }
+    .title { font-family: 'Chakra Petch', monospace; color: #e9e9f2; font-size: 17px; font-weight: 700; letter-spacing: 0.18em; }
+    .title .acc { color: #ff6b00; text-shadow: 0 0 14px rgba(255,107,0,0.7); }
+    .title .sep { color: #51516a; margin: 0 5px; }
+    .subtitle { color: #8b8ba6; font-size: 8px; letter-spacing: 0.28em; margin-top: 4px; text-transform: uppercase; font-family: 'JetBrains Mono', monospace; }
+    .bar-wrap { width: 200px; height: 3px; background: #25253a; border-radius: 2px; margin-top: 16px; overflow: hidden; }
+    .bar { height: 100%; width: 65%; background: linear-gradient(90deg, #ff6b00, #ffb800); border-radius: 2px; box-shadow: 0 0 10px rgba(255,107,0,0.8); }
+    .status { color: #51516a; font-size: 8px; margin-top: 8px; letter-spacing: 0.16em; text-transform: uppercase; font-family: 'JetBrains Mono', monospace; }
+  </style>
+</head>
+<body>
+  <div class="controls">
+    <label>Fade start position — <span id="val">50%</span></label>
+    <input type="range" id="fadeSlider" min="20" max="90" value="70" oninput="updateFade(this.value)"/>
+  </div>
+  <div class="splash" id="splash">
+    <!-- background layers — these get the fade mask -->
+    <div class="splash-bg">
+      <div class="icon-bg"></div>
+      <div class="icon-fade"></div>
+      <div class="glow-cyan"></div>
+      <div class="grid"></div>
+      <div class="scanlines"></div>
+    </div>
+    <!-- these stay fully opaque — no mask -->
+    <div class="corner-tl"></div>
+    <div class="version">v1.0.5</div>
+    <div class="content">
+      <div class="title"><span class="acc">DIMA</span><span class="sep">//</span><span>TRADING OS</span></div>
+      <div class="subtitle">Intelligent Trading Platform</div>
+      <div class="bar-wrap"><div class="bar"></div></div>
+      <div class="status">Starting backend...</div>
+    </div>
+  </div>
+  <script>
+    function updateFade(v) {
+      document.getElementById('val').textContent = v + '%';
+      const s = parseInt(v);
+      const m1 = Math.min(s + 12, 95);
+      const m2 = Math.min(s + 25, 99);
+      const mask = `linear-gradient(to bottom, black 0%, black ${s}%, rgba(0,0,0,0.6) ${m1}%, rgba(0,0,0,0.15) ${m2}%, transparent 100%)`;
+      const bg = document.querySelector('.splash-bg');
+      bg.style.webkitMaskImage = mask;
+      bg.style.maskImage = mask;
+    }
+    updateFade(70);
+  </script>
+</body>
+</html>

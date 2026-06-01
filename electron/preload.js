@@ -21,6 +21,10 @@ contextBridge.exposeInMainWorld('electronAPI', {
   getLogHistory:   () => ipcRenderer.invoke('get-log-history'),
   onServerLog:     (cb) => ipcRenderer.on('log', (_, line) => cb(line)),
 
+  // Auto-update
+  checkForUpdates:   () => ipcRenderer.invoke('check-for-updates'),
+  onUpdateAvailable: (cb) => ipcRenderer.on('update-available', (_, info) => cb(info)),
+
   // Detect we're in Electron
   isElectron: true,
 });

@@ -3,7 +3,7 @@
  * build_installer.js — Build the Windows installer
  *
  * Usage:
- *   node scripts/build_installer.js                        → personal build
+ *   node scripts/build_installer.js                        → personal build (auto-bumps patch)
  *   node scripts/build_installer.js --clean                → customer build (auto-bumps patch)
  *   node scripts/build_installer.js --clean --ver 1.2.0   → customer build with specific version
  */
@@ -28,34 +28,29 @@ function bumpPatch(v) {
   return parts.join('.');
 }
 
-let newVer = oldVer;
-if (isClean) {
-  // Customer build: use --ver if provided, otherwise auto-bump patch
-  newVer = verIdx !== -1 && process.argv[verIdx + 1]
-    ? process.argv[verIdx + 1]
-    : bumpPatch(oldVer);
-}
+// Always bump patch version on every build; --ver overrides for customer builds
+let newVer = verIdx !== -1 && process.argv[verIdx + 1] && isClean
+  ? process.argv[verIdx + 1]
+  : bumpPatch(oldVer);
 
 // ── Header ────────────────────────────────────────────────────────────────────
 console.log('\n╔══════════════════════════════════════════════════════════╗');
 console.log('║        DIMA TRADING OS — Windows Installer Builder       ║');
 console.log(`║   Mode:    ${isClean ? 'CUSTOMER BUILD (clean data)     ' : 'PERSONAL BUILD (your data)     '}  ║`);
-console.log(`║   Version: ${oldVer.padEnd(10)} → ${isClean ? newVer.padEnd(10) : oldVer.padEnd(10)}                   ║`);
+console.log(`║   Version: ${oldVer.padEnd(10)} → ${newVer.padEnd(10)}                   ║`);
 console.log('╚══════════════════════════════════════════════════════════╝\n');
 
-// ── Bump version in package.json for customer build ───────────────────────────
-if (isClean && newVer !== oldVer) {
-  pkg.version = newVer;
-  fs.writeFileSync(pkgFile, JSON.stringify(pkg, null, 2) + '\n', 'utf8');
-  console.log(`[0] Version bumped: ${oldVer} → ${newVer}`);
-}
+// ── Always bump version in package.json ───────────────────────────────────────
+const pkgFilePath = path.join(ROOT, 'package.json');
+pkg.version = newVer;
+fs.writeFileSync(pkgFilePath, JSON.stringify(pkg, null, 2) + '\n', 'utf8');
+console.log(`[0] Version bumped: ${oldVer} → ${newVer}`);
 
 // ── Step 0a: Generate installer wizard BMP assets ─────────────────────────────
 console.log('[0/5] Generating installer wizard graphics...');
 execSync('node scripts/generate-installer-assets.js', { cwd: ROOT, stdio: 'inherit' });
 
 // ── Personal build: update package.json filter to include personal data ──────
-const pkgFilePath = path.join(ROOT, 'package.json');
 const pkgData     = JSON.parse(fs.readFileSync(pkgFilePath, 'utf8'));
 const origFilter  = JSON.parse(JSON.stringify(pkgData.build.extraResources[0].filter));
 
@@ -136,7 +131,8 @@ try {
   // ── Step 4: Restore original source ──────────────────────────────────────
   if (patchApplied && srcBackup) {
     fs.writeFileSync(srcFile, srcBackup, 'utf8');
-    pkg.version = isClean ? newVer : oldVer;
+    // Keep bumped version in package.json (version was already set to newVer above)
+    pkg.version = newVer;
     fs.writeFileSync(pkgFile, JSON.stringify(pkg, null, 2) + '\n', 'utf8');
     console.log('[4/5] Source restored.');
   }
@@ -202,3 +198,27 @@ if (isClean) {
 
 console.log('\nInstall note: Enable Windows Developer Mode before running .exe');
 console.log('  Settings → Privacy & Security → For Developers → Developer Mode: ON\n');
+
+// ── Create GitHub release after every build ───────────────────────────────────
+try {
+  const relDir  = path.join(ROOT, 'release');
+  const tagName = `v${newVer}`;
+  const exeFile = fs.existsSync(relDir)
+    ? fs.readdirSync(relDir).find(f => f.endsWith('.exe') && f.includes(newVer))
+    : null;
+  if (exeFile) {
+    const exePath = path.join(relDir, exeFile);
+    console.log(`[5/5] Creating GitHub release ${tagName}...`);
+    execSync(
+      `gh release create ${tagName} "${exePath}" --title "Dima Trading OS ${tagName}" --notes "Release ${tagName}" --latest`,
+      { cwd: ROOT, stdio: 'inherit' }
+    );
+    console.log(`GitHub release ${tagName} created`);
+  } else {
+    console.log(`Note: No .exe with version ${newVer} found — skipping GitHub release.`);
+    console.log(`  Run manually: gh release create ${tagName} release\\*.exe`);
+  }
+} catch (e) {
+  console.log('Note: GitHub release creation failed (gh CLI not configured) —', e.message.slice(0, 80));
+  console.log('  Run manually: gh release create v' + newVer + ' release\\*.exe');
+}

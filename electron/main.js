@@ -4,6 +4,7 @@ const { spawn, execSync } = require('child_process');
 const http = require('http');
 const path = require('path');
 const fs   = require('fs');
+const { checkForUpdates } = require('./updater');
 
 // ── Keep userData on D: drive ────────────────────────────────────────────────
 app.setPath('userData', path.join(__dirname, '..', '.electron-data'));
@@ -82,9 +83,35 @@ function startBackend() {
   freePort();
   console.log('[main] Starting backend:', BACKEND_PATH, `(attempt ${_respawnAttempts + 1})`);
 
+  // ── Persistent data paths in AppData (survives reinstalls) ────────────────
+  const DATA_DIR = path.join(app.getPath('appData'), 'Dima Trading OS', 'data');
+  const ENV_FILE = path.join(app.getPath('appData'), 'Dima Trading OS', '.env');
+  fs.mkdirSync(DATA_DIR, { recursive: true });
+
+  // ── One-time migration of old data from install dir to AppData ─────────────
+  const OLD_DATA = path.join(path.dirname(BACKEND_PATH), 'data');
+  if (fs.existsSync(OLD_DATA) && !fs.existsSync(path.join(DATA_DIR, '_migrated'))) {
+    try {
+      fs.readdirSync(OLD_DATA).forEach(f => {
+        const src = path.join(OLD_DATA, f);
+        const dst = path.join(DATA_DIR, f);
+        if (!fs.existsSync(dst)) fs.copyFileSync(src, dst);
+      });
+      // Migrate .env
+      const oldEnv = path.join(path.dirname(BACKEND_PATH), '.env');
+      if (fs.existsSync(oldEnv) && !fs.existsSync(ENV_FILE)) {
+        fs.copyFileSync(oldEnv, ENV_FILE);
+      }
+      fs.writeFileSync(path.join(DATA_DIR, '_migrated'), new Date().toISOString());
+      console.log('[main] Data migrated to AppData');
+    } catch (e) {
+      console.warn('[main] Migration warning:', e.message);
+    }
+  }
+
   backendProcess = spawn('node', [BACKEND_PATH], {
     cwd:         path.dirname(BACKEND_PATH),
-    env:         { ...process.env, PORT: String(BACKEND_PORT) },
+    env:         { ...process.env, PORT: String(BACKEND_PORT), DATA_DIR, ENV_FILE },
     stdio:       ['ignore', 'pipe', 'pipe'],
     windowsHide: true,   // no popup — logs available via Server Logs window in app
   });
@@ -182,18 +209,23 @@ function closeSplash() {
 
 // ── First-run check ───────────────────────────────────────────────────────────
 function isFirstRun() {
-  // Skip wizard if .env is already pre-configured (personal build)
-  try {
-    const envPath = path.join(path.dirname(BACKEND_PATH), '.env');
-    if (fs.existsSync(envPath)) {
-      const env = fs.readFileSync(envPath, 'utf8');
-      if (env.includes('TELEGRAM_BOT_TOKEN=') &&
-          !env.includes('YOUR-BOT-TOKEN') &&
-          !env.includes('TELEGRAM_BOT_TOKEN=\n')) {
-        return false;  // personal build with pre-configured keys — skip wizard
+  // Skip wizard if .env is already pre-configured (personal build or migrated AppData)
+  const envCandidates = [
+    path.join(app.getPath('appData'), 'Dima Trading OS', '.env'),
+    path.join(path.dirname(BACKEND_PATH), '.env'),
+  ];
+  for (const envPath of envCandidates) {
+    try {
+      if (fs.existsSync(envPath)) {
+        const env = fs.readFileSync(envPath, 'utf8');
+        if (env.includes('TELEGRAM_BOT_TOKEN=') &&
+            !env.includes('YOUR-BOT-TOKEN') &&
+            !env.includes('TELEGRAM_BOT_TOKEN=\n')) {
+          return false;  // pre-configured keys — skip wizard
+        }
       }
-    }
-  } catch {}
+    } catch {}
+  }
   const settingsFile = path.join(app.getPath('userData'), 'setup.json');
   return !fs.existsSync(settingsFile);
 }
@@ -310,8 +342,11 @@ app.whenReady().then(async () => {
             `LOG_LEVEL=info`,
           ].join('\n');
 
-          const envPath = path.join(BACKEND_PATH, '..', '.env');
-          try { fs.writeFileSync(envPath, envLines, 'utf8'); } catch {}
+          const envPath = path.join(app.getPath('appData'), 'Dima Trading OS', '.env');
+          try {
+            fs.mkdirSync(path.dirname(envPath), { recursive: true });
+            fs.writeFileSync(envPath, envLines, 'utf8');
+          } catch {}
 
           // Also save username to backend settings
           const saves = [];
@@ -344,6 +379,14 @@ app.whenReady().then(async () => {
     createWindow();
   }
 
+  // Silent update check 5 seconds after app loads
+  setTimeout(async () => {
+    const update = await checkForUpdates(true);
+    if (update && mainWindow && !mainWindow.isDestroyed()) {
+      mainWindow.webContents.send('update-available', update);
+    }
+  }, 5000);
+
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) createWindow();
   });
@@ -361,6 +404,14 @@ app.on('quit', () => {
 
 // ── IPC ───────────────────────────────────────────────────────────────────────
 ipcMain.handle('open-external', (_, url) => shell.openExternal(url));
+
+// ── Update checks ─────────────────────────────────────────────────────────────
+ipcMain.handle('check-for-updates', async () => {
+  return await checkForUpdates(false);
+});
+ipcMain.handle('check-for-updates-silent', async () => {
+  return await checkForUpdates(true);
+});
 
 // ── Server Log Window ─────────────────────────────────────────────────────────
 ipcMain.handle('open-server-logs', () => {

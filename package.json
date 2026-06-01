@@ -1,6 +1,6 @@
 {
   "name": "dima-trading-os",
-  "version": "1.0.5",
+  "version": "1.0.6",
   "description": "Dima Trading OS — Desktop App",
   "main": "electron/main.js",
   "scripts": {

@@ -561,6 +561,9 @@ export default function DimaTradingOS() {
   // Trading Diary
   const [diaryLoading, setDiaryLoading]   = useState(false);
   const [diaryResult,  setDiaryResult]    = useState(null); // {success, filePath, error}
+  // Auto-update
+  const [updateInfo,     setUpdateInfo]     = useState(null);
+  const [updateChecking, setUpdateChecking] = useState(false);
 
   const wlInputRef = React.useRef(null);
   const eqRef = useRef(null), ptRef = useRef(null);
@@ -685,6 +688,11 @@ export default function DimaTradingOS() {
         return next.length > 500 ? next.slice(-500) : next;
       });
     });
+  }, []);
+
+  // Subscribe to update-available notifications from main process
+  useEffect(() => {
+    window.electronAPI?.onUpdateAvailable?.(info => setUpdateInfo(info));
   }, []);
 
   // Auto-scroll server log to bottom when new lines arrive and tab is open
@@ -1907,7 +1915,28 @@ ${skillJournal ? `\nSKILL JOURNAL (${username}'s own recorded lessons — refere
                   <button type="button" onClick={()=>setTab('stats')} style={{...C.btn(""),marginBottom:4,fontSize:10,padding:"5px 10px"}}>Statistics &amp; Rank</button>
                   <button type="button" onClick={()=>quickSend("What's hot in the market today? Top 3 momentum stocks with clear catalyst, volume confirmation, and 150 SMA setup. Filter out noise.")} style={{...C.btn(""),marginBottom:4,fontSize:10,padding:"5px 10px"}}>Whats Hot ↗</button>
                   <button type="button" onClick={()=>quickSend("Give me my morning briefing. Analyze my open positions vs current market conditions and BTC price. What do I need to watch today?")} style={{...C.btn(""),marginBottom:4,fontSize:10,padding:"5px 10px"}}>Morning Briefing ↗</button>
-                  <button type="button" onClick={()=>generateTradingDiary(journalMonth)} disabled={diaryLoading} style={{...C.btn("green"),marginBottom:0,fontSize:10,fontWeight:700,padding:"5px 10px",opacity:diaryLoading?0.6:1}}>{diaryLoading?'Generating…':'Trading Diary (.docx)'}</button>
+                  <button type="button" onClick={()=>generateTradingDiary(journalMonth)} disabled={diaryLoading} style={{...C.btn("green"),marginBottom:4,fontSize:10,fontWeight:700,padding:"5px 10px",opacity:diaryLoading?0.6:1}}>{diaryLoading?'Generating…':'Trading Diary (.docx)'}</button>
+                  {/* Update checker */}
+                  {updateInfo && (
+                    <div style={{marginTop:6,padding:"8px 10px",background:"rgba(255,107,0,0.1)",border:"1px solid rgba(255,107,0,0.4)",borderRadius:4}}>
+                      <div style={{fontSize:10,fontWeight:700,color:accent,marginBottom:4}}>Update Available — v{updateInfo.version}</div>
+                      <button type="button" onClick={()=>window.electronAPI?.openExternal?.(updateInfo.downloadUrl)}
+                        style={{...C.btn("green"),marginBottom:0,fontSize:10,padding:"5px 8px"}}>
+                        Download Update
+                      </button>
+                    </div>
+                  )}
+                  <button type="button"
+                    disabled={updateChecking}
+                    onClick={async()=>{
+                      setUpdateChecking(true);
+                      const info = await window.electronAPI?.checkForUpdates?.();
+                      if (info) setUpdateInfo(info);
+                      setUpdateChecking(false);
+                    }}
+                    style={{...C.btn(""),marginTop:4,fontSize:10,padding:"4px 8px",marginBottom:0,opacity:updateChecking?0.6:1}}>
+                    {updateChecking?"Checking...":"Check for Updates"}
+                  </button>
                 </div>
                 {/* Username */}
                 <div style={{...C.card,padding:"6px 12px"}}>
