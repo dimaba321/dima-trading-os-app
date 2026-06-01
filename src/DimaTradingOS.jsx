@@ -633,12 +633,47 @@ export default function DimaTradingOS() {
       body: JSON.stringify({ value: JSON.stringify(recent.slice(-20)) }), // last 20 to backend
     }).catch(() => {});
   }, [chatMessages]);
+  // buildCharts must be declared BEFORE the useEffect that depends on it (avoids TDZ)
+  const buildCharts = useCallback(() => {
+    if (eqRef.current && !eqChart.current) {
+      const chronological = [...closed].sort((a, b) => {
+        if (a.seq != null && b.seq != null) return a.seq - b.seq;
+        return (a.date||'') > (b.date||'') ? 1 : -1;
+      });
+      let cum = 0;
+      const data = chronological.map(t => { cum = parseFloat((cum + t.pnl).toFixed(2)); return cum; });
+      const labs = chronological.map(t => t.ticker);
+      const ptC = data.map((_, i) => data[i] >= (i > 0 ? data[i - 1] : 0) ? "rgba(63,185,80,1)" : "rgba(248,81,73,1)");
+      eqChart.current = new Chart(eqRef.current, {
+        type: "line",
+        data: { labels: labs, datasets: [{ data, borderColor: "rgba(63,185,80,0.6)", backgroundColor: "rgba(63,185,80,0.04)", fill: true, tension: 0.3, pointRadius: 4, pointBackgroundColor: ptC, pointBorderColor: ptC, borderWidth: 1.5 }] },
+        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false }, tooltip: { callbacks: { label: c => "$" + c.parsed.y.toFixed(2) }, backgroundColor: bg3, titleColor: txt2, bodyColor: txt, borderColor: bdr2, borderWidth: 1 } }, scales: { x: { ticks: { font: { size: 8 }, color: txt3, autoSkip: true, maxRotation: 45 }, grid: { color: bdr } }, y: { ticks: { font: { size: 8 }, color: txt3, callback: v => "$" + v }, grid: { color: bdr } } } },
+      });
+    }
+    if (ptRef.current && !ptChart.current) {
+      const patMap = {};
+      closed.forEach(t => {
+        const p = t.pattern || "Untagged";
+        if (!patMap[p]) patMap[p] = { w: 0, t: 0 };
+        patMap[p].t++;
+        if (t.pnl > 0) patMap[p].w++;
+      });
+      const labs = Object.keys(patMap).slice(0, 12);
+      const data = labs.map(k => parseFloat((patMap[k].w / patMap[k].t * 100).toFixed(0)));
+      const cols = data.map(v => v >= 50 ? "rgba(63,185,80,0.7)" : "rgba(248,81,73,0.7)");
+      ptChart.current = new Chart(ptRef.current, {
+        type: "bar",
+        data: { labels: labs, datasets: [{ data, backgroundColor: cols, borderRadius: 3 }] },
+        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false }, tooltip: { callbacks: { label: c => c.parsed.y + "% win rate" }, backgroundColor: bg3, titleColor: txt2, bodyColor: txt, borderColor: bdr2, borderWidth: 1 } }, scales: { x: { ticks: { font: { size: 8 }, color: txt3, maxRotation: 45 }, grid: { display: false } }, y: { min: 0, max: 100, ticks: { font: { size: 8 }, color: txt3, callback: v => v + "%" }, grid: { color: bdr } } } },
+      });
+    }
+  }, [closed]);
+
   useEffect(() => {
     if (tab === "stats") {
       const tid = setTimeout(buildCharts, 120);
       return () => clearTimeout(tid);
     } else {
-      // Destroy chart instances when leaving stats tab so they rebuild cleanly on return
       if (eqChart.current) { eqChart.current.destroy(); eqChart.current = null; }
       if (ptChart.current) { ptChart.current.destroy(); ptChart.current = null; }
     }
@@ -754,43 +789,6 @@ export default function DimaTradingOS() {
       setBtc({ price: d.bitcoin.usd, change: d.bitcoin.usd_24h_change });
     } catch {}
   }
-
-  const buildCharts = useCallback(() => {
-    if (eqRef.current && !eqChart.current) {
-      // Equity curve: oldest first using seq (correct trade order), fallback to date
-      const chronological = [...closed].sort((a, b) => {
-        if (a.seq != null && b.seq != null) return a.seq - b.seq;
-        return (a.date||'') > (b.date||'') ? 1 : -1;
-      });
-      let cum = 0;
-      const data = chronological.map(t => { cum = parseFloat((cum + t.pnl).toFixed(2)); return cum; });
-      const labs = chronological.map(t => t.ticker);
-      const ptC = data.map((_, i) => data[i] >= (i > 0 ? data[i - 1] : 0) ? "rgba(63,185,80,1)" : "rgba(248,81,73,1)");
-      eqChart.current = new Chart(eqRef.current, {
-        type: "line",
-        data: { labels: labs, datasets: [{ data, borderColor: "rgba(63,185,80,0.6)", backgroundColor: "rgba(63,185,80,0.04)", fill: true, tension: 0.3, pointRadius: 4, pointBackgroundColor: ptC, pointBorderColor: ptC, borderWidth: 1.5 }] },
-        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false }, tooltip: { callbacks: { label: c => "$" + c.parsed.y.toFixed(2) }, backgroundColor: bg3, titleColor: txt2, bodyColor: txt, borderColor: bdr2, borderWidth: 1 } }, scales: { x: { ticks: { font: { size: 8 }, color: txt3, autoSkip: true, maxRotation: 45 }, grid: { color: bdr } }, y: { ticks: { font: { size: 8 }, color: txt3, callback: v => "$" + v }, grid: { color: bdr } } } },
-      });
-    }
-    if (ptRef.current && !ptChart.current) {
-      // Live pattern data computed from actual closed trades
-      const patMap = {};
-      closed.forEach(t => {
-        const p = t.pattern || "Untagged";
-        if (!patMap[p]) patMap[p] = { w: 0, t: 0 };
-        patMap[p].t++;
-        if (t.pnl > 0) patMap[p].w++;
-      });
-      const labs = Object.keys(patMap).slice(0, 12); // cap for readability
-      const data = labs.map(k => parseFloat((patMap[k].w / patMap[k].t * 100).toFixed(0)));
-      const cols = data.map(v => v >= 50 ? "rgba(63,185,80,0.7)" : "rgba(248,81,73,0.7)");
-      ptChart.current = new Chart(ptRef.current, {
-        type: "bar",
-        data: { labels: labs, datasets: [{ data, backgroundColor: cols, borderRadius: 3 }] },
-        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false }, tooltip: { callbacks: { label: c => c.parsed.y + "% win rate" }, backgroundColor: bg3, titleColor: txt2, bodyColor: txt, borderColor: bdr2, borderWidth: 1 } }, scales: { x: { ticks: { font: { size: 8 }, color: txt3, maxRotation: 45 }, grid: { display: false } }, y: { min: 0, max: 100, ticks: { font: { size: 8 }, color: txt3, callback: v => v + "%" }, grid: { color: bdr } } } },
-      });
-    }
-  }, [closed]);
 
   // ── journal prompt builder ─────────────────────────────────
   function buildJournalPrompt(month) {
