@@ -1891,7 +1891,7 @@ ${skillJournal ? `\nSKILL JOURNAL (${username}'s own recorded lessons — refere
         {/* ── Market Sentiment + Quick Actions ── */}
         {(()=>{
           return (
-            <div style={{display:"grid",gridTemplateColumns:"2fr 1fr",gap:10,marginBottom:10,maxHeight:230,overflow:"hidden"}}>
+            <div style={{display:"grid",gridTemplateColumns:"2fr 1fr",gap:10,marginBottom:10}}>
               {/* Speedometer gauges */}
               <div style={{...C.card,display:"flex",gap:10,padding:"10px 14px",alignItems:"center",overflow:"hidden"}}>
                 <SpeedometerGauge value={fearGreed?.score?Math.round(fearGreed.score):null} title="STOCK MARKET" gId="stock"/>
