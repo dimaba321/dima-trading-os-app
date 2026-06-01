@@ -379,13 +379,20 @@ app.whenReady().then(async () => {
     createWindow();
   }
 
-  // Silent update check 5 seconds after app loads
+  // Silent update check — wait 8s for React to fully mount
   setTimeout(async () => {
     const update = await checkForUpdates(true);
     if (update && mainWindow && !mainWindow.isDestroyed()) {
-      mainWindow.webContents.send('update-available', update);
+      // Retry a few times to handle race condition
+      let sent = 0;
+      const send = () => {
+        if (!mainWindow || mainWindow.isDestroyed()) return;
+        mainWindow.webContents.send('update-available', update);
+        if (++sent < 3) setTimeout(send, 2000);
+      };
+      send();
     }
-  }, 5000);
+  }, 8000);
 
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) createWindow();
