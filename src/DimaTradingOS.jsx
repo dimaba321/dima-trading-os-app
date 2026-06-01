@@ -263,7 +263,7 @@ const C = {
   page: { flex: 1, padding: 16, display: "flex", flexDirection: "column", gap: 14, overflow: "hidden" },
   g5: { display: "grid", gridTemplateColumns: "repeat(5,1fr)", gap: 8, marginBottom: 12 },
   g4: { display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 8, marginBottom: 12 },
-  g2: { display: "grid", gridTemplateColumns: "1fr 256px", gap: 10 },
+  g2: { display: "grid", gridTemplateColumns: "2fr 1fr", gap: 10 },
   g2e: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6 },
   wrap: { display: "flex", flexDirection: "column", fontFamily: mono, fontSize: 12, background: bg, color: txt, minHeight: "100vh", overflow: "hidden", position: "relative" },
 };
