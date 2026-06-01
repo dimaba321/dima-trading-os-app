@@ -204,4 +204,14 @@ if (isClean) {
 console.log('\nInstall note: Enable Windows Developer Mode before running .exe');
 console.log('  Settings → Privacy & Security → For Developers → Developer Mode: ON\n');
 
-console.log(`\n✓ GitHub release v${newVer} published automatically by electron-builder`);
+// electron-builder creates releases as Draft — promote to Latest automatically
+if (isClean) {
+  try {
+    const ghPath = fs.existsSync('C:/Program Files/GitHub CLI/gh.exe')
+      ? '"C:/Program Files/GitHub CLI/gh.exe"' : 'gh';
+    execSync(`${ghPath} release edit v${newVer} --draft=false --latest`, { cwd: ROOT, stdio: 'inherit' });
+    console.log(`\n✓ GitHub release v${newVer} published and set as latest`);
+  } catch(e) {
+    console.log('Note: Could not auto-publish release — run manually: gh release edit v' + newVer + ' --draft=false --latest');
+  }
+}

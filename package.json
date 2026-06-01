@@ -1,6 +1,6 @@
 {
   "name": "dima-trading-os",
-  "version": "1.0.9",
+  "version": "1.0.12",
   "description": "Dima Trading OS — Desktop App",
   "main": "electron/main.js",
   "scripts": {
@@ -32,7 +32,13 @@
     "appId": "com.dima.tradingos",
     "productName": "Dima Trading OS",
     "copyright": "Dima Trading OS 2026",
-    "publish": [{ "provider": "github", "owner": "dimaba321", "repo": "dima-trading-os-app" }],
+    "publish": [
+      {
+        "provider": "github",
+        "owner": "dimaba321",
+        "repo": "dima-trading-os-app"
+      }
+    ],
     "win": {
       "target": [
         {
