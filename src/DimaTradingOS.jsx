@@ -681,6 +681,15 @@ export default function DimaTradingOS() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => { if (tab === "analytics") fetchAgentStats(); }, [tab]);
 
+  // refreshWatchPrices must be declared BEFORE the useEffect that depends on it (avoids TDZ)
+  const refreshWatchPrices = useCallback(async () => {
+    if (!watchlist.length) return;
+    setWlLoading(true);
+    const data = await fetchLivePrices(watchlist);
+    if (Object.keys(data).length) setWatchPrices(data);
+    setWlLoading(false);
+  }, [watchlist]);
+
   // watchlist + backend
   useEffect(()=>{
     if(watchlist.length) refreshWatchPrices();
@@ -1171,13 +1180,6 @@ Then NEW LINE: write a direct 2-4 sentence debrief to ${username}. Be honest. Na
   }
 
   // watchlist helpers
-  const refreshWatchPrices = useCallback(async () => {
-    if (!watchlist.length) return;
-    setWlLoading(true);
-    const data = await fetchLivePrices(watchlist);
-    if (Object.keys(data).length) setWatchPrices(data);
-    setWlLoading(false);
-  }, [watchlist]);
   function addToWatchlist() {
     const raw = (wlInputRef.current ? wlInputRef.current.value : "") || wlInput || "";
     const t = raw.trim().toUpperCase();
