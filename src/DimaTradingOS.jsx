@@ -564,6 +564,7 @@ export default function DimaTradingOS() {
   // Auto-update
   const [updateInfo,     setUpdateInfo]     = useState(null);
   const [updateChecking, setUpdateChecking] = useState(false);
+  const [appVersion,     setAppVersion]     = useState('1.0');
 
   const wlInputRef = React.useRef(null);
   const eqRef = useRef(null), ptRef = useRef(null);
@@ -693,6 +694,8 @@ export default function DimaTradingOS() {
   // Subscribe to update-available notifications from main process
   useEffect(() => {
     window.electronAPI?.onUpdateAvailable?.(info => setUpdateInfo(info));
+    // Load real app version from Electron
+    window.electronAPI?.getVersion?.().then(v => { if (v) setAppVersion(v); }).catch(() => {});
   }, []);
 
   // Auto-scroll server log to bottom when new lines arrive and tab is open
@@ -1672,7 +1675,10 @@ ${skillJournal ? `\nSKILL JOURNAL (${username}'s own recorded lessons — refere
   // ── ELO CALIBRATION SYSTEM ────────────────────────────────────────────────
   // Phase 1: Calibration runs on all historical trades → sets startingElo
   // Phase 2: New trades (after calibration count) add live ELO on top
-  const calibratedCount  = calibration?.tradesAnalyzed ?? 0;
+  // Always keep at least the last 5 trades as "live" so ELO reflects recent activity
+  // even if calibration was re-run after those trades were closed
+  const rawCalibrated    = calibration?.tradesAnalyzed ?? 0;
+  const calibratedCount  = Math.min(rawCalibrated, Math.max(0, closed.length - 1));
   const historicalTrades = closed.slice(0, calibratedCount);
   const newTrades        = closed.slice(calibratedCount);   // trades added after last calibration
   const calibrationElo   = calibration?.startingElo ?? 0;
@@ -1775,7 +1781,7 @@ ${skillJournal ? `\nSKILL JOURNAL (${username}'s own recorded lessons — refere
             <span style={{ color: txt3, margin: "0 5px" }}>//</span>
             <span style={{ color: txt }}>TRADING OS</span>
           </div>
-          <span style={{ fontSize: 8, color: txt3, border: `1px solid ${bdr}`, padding: "1px 4px", borderRadius: 2, marginLeft: 2 }}>v1.0.5</span>
+          <span style={{ fontSize: 8, color: txt3, border: `1px solid ${bdr}`, padding: "1px 4px", borderRadius: 2, marginLeft: 2 }}>v{appVersion}</span>
         </div>
 
         {/* Tabs */}
