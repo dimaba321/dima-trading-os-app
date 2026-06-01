@@ -154,7 +154,7 @@
 
   <!-- foreground: fully solid, no mask -->
   <div class="corner-tl"></div>
-  <div class="version">v1.0.5</div>
+  <div class="version" id="ver">v...</div>
 
   <div class="content">
     <div class="title">
@@ -168,6 +168,12 @@
   </div>
 
   <script>
+    // Read version from query string (passed by main.js via loadFile options)
+    try {
+      const params = new URLSearchParams(window.location.search);
+      const v = params.get('version');
+      if (v) document.getElementById('ver').textContent = 'v' + v;
+    } catch {}
     const msgs = ['Initializing...','Starting backend...','Loading agents...','Connecting data feeds...','Ready.'];
     let i = 0;
     const el = document.getElementById('status');

@@ -197,7 +197,9 @@ function createSplash() {
     icon: path.join(__dirname, '..', 'public', 'ICON.png'),
     webPreferences: { contextIsolation: true },
   });
-  splashWindow.loadFile(path.join(__dirname, 'splash.html'));
+  splashWindow.loadFile(path.join(__dirname, 'splash.html'), {
+    query: { version: app.getVersion() }
+  });
   splashWindow.on('closed', () => { splashWindow = null; });
 }
 
