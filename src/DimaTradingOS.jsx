@@ -3100,6 +3100,12 @@ ${skillJournal ? `\nSKILL JOURNAL (${username}'s own recorded lessons — refere
             style={{padding:"10px 22px",background:agentsRunning?`rgba(255,107,0,0.08)`:`rgba(255,107,0,0.15)`,border:`1px solid rgba(255,107,0,0.45)`,color:accent,borderRadius:3,cursor:agentsRunning?"not-allowed":"pointer",fontFamily:mono,fontSize:13,fontWeight:700,display:"flex",alignItems:"center",gap:8,opacity:apiKey?1:0.5,textShadow:"0 0 10px rgba(255,107,0,0.6)",boxShadow:"0 0 14px rgba(255,107,0,0.2)"}}>
             {agentsRunning ? <><span style={{display:"inline-block",animation:"spin 1s linear infinite"}}>⟳</span> Running&hellip;</> : "▶ Run Full Scan"}
           </button>
+          <button
+            type="button"
+            onClick={() => window.electronAPI?.openServerLogs?.() || fetch(`${BACKEND}/api/health`)}
+            style={{padding:"10px 16px",background:"rgba(88,166,255,0.08)",border:`1px solid rgba(88,166,255,0.3)`,color:"#58a6ff",borderRadius:3,cursor:"pointer",fontFamily:mono,fontSize:12,fontWeight:600}}>
+            🖥 Server Logs
+          </button>
         </div>
 
         {/* Watchlist Panel */}

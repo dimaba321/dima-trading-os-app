@@ -21,6 +21,8 @@ const isDev           = process.env.ELECTRON_DEV === '1';
 let backendProcess  = null;
 let fileServer      = null;
 let mainWindow      = null;
+let logWindow       = null;
+const _backendLogs  = [];   // rolling 500-line buffer
 
 // ── MIME helper ───────────────────────────────────────────────────────────────
 function mime(fp) {
@@ -81,41 +83,27 @@ function startBackend() {
   console.log('[main] Starting backend:', BACKEND_PATH, `(attempt ${_respawnAttempts + 1})`);
 
   backendProcess = spawn('node', [BACKEND_PATH], {
-    cwd:   path.dirname(BACKEND_PATH),
-    env:   { ...process.env, PORT: String(BACKEND_PORT) },
-    stdio: ['ignore', 'pipe', 'pipe'],
+    cwd:         path.dirname(BACKEND_PATH),
+    env:         { ...process.env, PORT: String(BACKEND_PORT) },
+    stdio:       ['ignore', 'pipe', 'pipe'],
+    windowsHide: true,   // no popup — logs available via Server Logs window in app
   });
 
   // Force UTF-8 so emoji in log messages don't appear as garbage on Windows
   backendProcess.stdout.setEncoding('utf8');
   backendProcess.stderr.setEncoding('utf8');
-  backendProcess.stdout.on('data', d => process.stdout.write('[backend] ' + d));
-  backendProcess.stderr.on('data', d => process.stderr.write('[backend] ' + d));
-
-  // Minimize the node console window — find conhost.exe child of node by PID
-  if (process.platform === 'win32' && backendProcess.pid) {
-    const pid = backendProcess.pid;
-    const ps1 = path.join(app.getPath('temp'), 'dima_minimize.ps1');
-    fs.writeFileSync(ps1, `
-param([int]$p)
-Start-Sleep -Milliseconds 1500
-$c = Get-WmiObject Win32_Process | Where-Object { $_.ParentProcessId -eq $p -and $_.Name -eq 'conhost.exe' }
-if ($c) {
-  $ch = Get-Process -Id $c.ProcessId -ErrorAction SilentlyContinue
-  if ($ch -and $ch.MainWindowHandle -ne 0) {
-    Add-Type -TypeDefinition @'
-using System; using System.Runtime.InteropServices;
-public class W { [DllImport("user32.dll")] public static extern bool ShowWindow(IntPtr h, int n); }
-'@
-    [W]::ShowWindow($ch.MainWindowHandle, 6)
-  }
-}
-`);
-    require('child_process').exec(
-      `powershell -NoProfile -ExecutionPolicy Bypass -File "${ps1}" -p ${pid}`,
-      { windowsHide: true }, () => {}
-    );
-  }
+  backendProcess.stdout.on('data', d => {
+    process.stdout.write('[backend] ' + d);
+    _backendLogs.push({ t: Date.now(), line: d.trim() });
+    if (_backendLogs.length > 500) _backendLogs.shift();
+    if (logWindow && !logWindow.isDestroyed()) logWindow.webContents.send('log', d.trim());
+  });
+  backendProcess.stderr.on('data', d => {
+    process.stderr.write('[backend] ' + d);
+    _backendLogs.push({ t: Date.now(), line: '⚠ ' + d.trim() });
+    if (_backendLogs.length > 500) _backendLogs.shift();
+    if (logWindow && !logWindow.isDestroyed()) logWindow.webContents.send('log', '⚠ ' + d.trim());
+  });
 
   backendProcess.on('exit', (code, signal) => {
     backendProcess = null;
@@ -356,6 +344,52 @@ app.on('quit', () => {
 
 // ── IPC ───────────────────────────────────────────────────────────────────────
 ipcMain.handle('open-external', (_, url) => shell.openExternal(url));
+
+// ── Server Log Window ─────────────────────────────────────────────────────────
+ipcMain.handle('open-server-logs', () => {
+  if (logWindow && !logWindow.isDestroyed()) { logWindow.focus(); return; }
+  logWindow = new BrowserWindow({
+    width: 900, height: 600, minWidth: 600, minHeight: 300,
+    title: 'Dima Trading OS — Server Logs',
+    backgroundColor: '#07070d',
+    autoHideMenuBar: true,
+    webPreferences: { contextIsolation: false, nodeIntegration: true },
+  });
+  logWindow.loadURL(`data:text/html,${encodeURIComponent(`
+<!DOCTYPE html><html><head>
+<style>
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{background:#07070d;color:#c9d1d9;font-family:'JetBrains Mono',monospace;font-size:12px;padding:10px;overflow-y:auto;}
+  .line{padding:2px 4px;border-bottom:1px solid #0d1117;white-space:pre-wrap;word-break:break-all}
+  .line:hover{background:#0d1117}
+  .warn{color:#f85149}
+  .ts{color:#484f58;margin-right:8px;font-size:10px}
+  #hdr{position:sticky;top:0;background:#07070d;border-bottom:1px solid #21262d;padding:8px;display:flex;align-items:center;justify-content:space-between;margin-bottom:6px}
+  #hdr span{color:#3fb950;font-weight:700;font-size:11px;letter-spacing:0.1em}
+  button{background:#161b22;border:1px solid #30363d;color:#8b949e;padding:3px 10px;border-radius:4px;cursor:pointer;font-family:inherit;font-size:10px}
+  button:hover{color:#c9d1d9}
+</style></head><body>
+<div id="hdr"><span>● BACKEND SERVER LOGS</span><button onclick="document.getElementById('log').innerHTML=''">Clear</button></div>
+<div id="log"></div>
+<script>
+  const log = document.getElementById('log');
+  const {ipcRenderer} = require('electron');
+  function addLine(text) {
+    const d = new Date();
+    const ts = d.toTimeString().slice(0,8);
+    const el = document.createElement('div');
+    el.className = 'line' + (text.startsWith('⚠') ? ' warn' : '');
+    el.innerHTML = '<span class="ts">'+ts+'</span>' + text.replace(/</g,'&lt;');
+    log.appendChild(el);
+    window.scrollTo(0, document.body.scrollHeight);
+  }
+  ipcRenderer.on('log', (_, line) => addLine(line));
+  ipcRenderer.invoke('get-log-history').then(lines => lines.forEach(l => addLine(l.line)));
+</script></body></html>
+  `)}`);
+  logWindow.on('closed', () => { logWindow = null; });
+});
+ipcMain.handle('get-log-history', () => _backendLogs);
 ipcMain.handle('get-version',   ()       => app.getVersion());
 ipcMain.handle('backend-status', () => ({
   running: backendProcess !== null && !backendProcess.killed,
