@@ -627,15 +627,27 @@ export default function DimaTradingOS() {
   const eqRef = useRef(null), ptRef = useRef(null);
   const eqChart = useRef(null), ptChart = useRef(null);
 
+  // ── Dynamic rankGlow keyframe — updates with rank color ──────
+  useEffect(() => {
+    const c = eloRank?.color || '#ffffff';
+    const toRgba = (hex, a) => {
+      const r = parseInt(hex.slice(1,3),16), g = parseInt(hex.slice(3,5),16), b = parseInt(hex.slice(5,7),16);
+      return `rgba(${r},${g},${b},${a})`;
+    };
+    let el = document.getElementById('rank-glow-kf');
+    if (!el) { el = document.createElement('style'); el.id='rank-glow-kf'; document.head.appendChild(el); }
+    el.textContent = `@keyframes rankGlow {
+      0%,100% { box-shadow: 0 0 12px ${toRgba(c,.25)}, 0 0 4px ${toRgba(c,.15)}, inset 0 0 14px ${toRgba(c,.05)}; border-color: ${toRgba(c,.4)}; }
+      50%      { box-shadow: 0 0 38px ${toRgba(c,.7)}, 0 0 16px ${toRgba(c,.45)}, inset 0 0 24px ${toRgba(c,.12)}; border-color: ${toRgba(c,.9)}; }
+    }`;
+  }, [eloRank?.color]);
+
   // ── CSS keyframes injection ────────────────────────────────
   useEffect(() => {
     const style = document.createElement('style');
     style.textContent = `
       @keyframes sweep { 0% { transform: translateX(-100%); } 100% { transform: translateX(300%); } }
-      @keyframes rankGlow {
-        0%,100% { box-shadow: 0 0 18px var(--rc)33, 0 0 6px var(--rc)22, inset 0 0 20px var(--rc)08; border-color: var(--rc)66; }
-        50%      { box-shadow: 0 0 45px var(--rc)66, 0 0 20px var(--rc)44, inset 0 0 30px var(--rc)14; border-color: var(--rc)cc; }
-      }
+      /* rankGlow injected dynamically via useEffect based on rank color */
       @keyframes pulse { 0%,100% { opacity:1; box-shadow: 0 0 0 0 rgba(20,241,149,0.55); } 50% { opacity:0.6; box-shadow: 0 0 0 5px rgba(20,241,149,0); } }
       @keyframes flashUp { 0% { color: #14f195; } 100% {} }
       @keyframes flashDown { 0% { color: #ff2d55; } 100% {} }
@@ -2260,7 +2272,6 @@ ${skillJournal ? `\nSKILL JOURNAL (${username}'s own recorded lessons — refere
 
           <div>
             <div style={{ ...C.card, textAlign: "center",
-              '--rc': eloRank.color,
               border:`1.5px solid ${eloRank.color}66`,
               animation:"rankGlow 3s ease-in-out infinite",
               position:"relative", overflow:"hidden" }}>
@@ -2573,7 +2584,6 @@ ${skillJournal ? `\nSKILL JOURNAL (${username}'s own recorded lessons — refere
           <div>
             {/* ── CALIBRATION + ELO RANK CARD ── */}
             <div style={{...C.rcard(eloRank.color), display:"flex", flexDirection:"column", alignItems:"center", padding:"28px 24px",
-              '--rc': eloRank.color,
               border:`1.5px solid ${eloRank.color}66`,
               animation:"rankGlow 3s ease-in-out infinite",
               position:"relative", overflow:"hidden"}}>
