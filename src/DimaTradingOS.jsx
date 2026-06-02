@@ -3258,6 +3258,110 @@ ${skillJournal ? `\nSKILL JOURNAL (${username}'s own recorded lessons — refere
         </div>
       </div>}
 
+      {/* ── FEEDBACK DASHBOARD (personal build only — reads GitHub Issues) ── */}
+      {tab==="agents" && (
+        <div style={{...C.card, margin:"0 0 0 0", padding:"14px 16px"}}>
+          <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:10}}>
+            <div style={{display:"flex",alignItems:"center",gap:10}}>
+              <span style={{fontSize:11,fontWeight:700,color:txt2,textTransform:"uppercase",letterSpacing:"0.1em",fontFamily:display}}>📬 Customer Feedback</span>
+              <span style={{fontSize:9,color:txt3,border:`1px solid ${bdr}`,padding:"1px 6px",borderRadius:2}}>{feedbackIssues.length} reports</span>
+              {['all','bug','suggestion','performance','ui','complaint'].map(f=>(
+                <button type="button" key={f} onClick={()=>setFeedbackFilter(f)}
+                  style={{fontSize:8,padding:"2px 8px",background:feedbackFilter===f?`rgba(255,107,0,0.15)`:bg3,
+                    border:`1px solid ${feedbackFilter===f?"rgba(255,107,0,0.4)":bdr}`,
+                    color:feedbackFilter===f?accent:txt3,borderRadius:3,cursor:"pointer",fontFamily:mono,textTransform:"uppercase"}}>
+                  {f}
+                </button>
+              ))}
+            </div>
+            <button type="button" disabled={feedbackLoading}
+              onClick={async()=>{
+                setFeedbackLoading(true);
+                try {
+                  const r = await fetch(`${BACKEND}/api/feedback/list`);
+                  if(r.ok) setFeedbackIssues(await r.json());
+                } catch{}
+                setFeedbackLoading(false);
+              }}
+              style={{fontSize:9,padding:"3px 10px",background:elevated,border:`1px solid ${bdr2}`,color:txt3,borderRadius:3,cursor:"pointer",fontFamily:mono}}>
+              {feedbackLoading?"Loading...":"↺ Refresh"}
+            </button>
+          </div>
+
+          {feedbackIssues.length === 0 ? (
+            <div style={{fontSize:10,color:txt3,fontStyle:"italic",padding:"16px 0",textAlign:"center"}}>
+              No feedback yet — click Refresh to load from GitHub
+            </div>
+          ) : (
+            <div style={{overflowY:"auto",maxHeight:320}}>
+              <table style={{...C.tbl,fontSize:10}}>
+                <thead>
+                  <tr>
+                    {["#","Type","Priority","Title","Date","Status",""].map(h=>(
+                      <th key={h} style={{...C.th,fontSize:8}}>{h}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {feedbackIssues
+                    .filter(i => feedbackFilter==='all' || i.labels.includes(feedbackFilter))
+                    .sort((a,b)=>{
+                      const pA = parseInt((a.title.match(/Priority.*?(\d+)\/10/)||[])[1]||0);
+                      const pB = parseInt((b.title.match(/Priority.*?(\d+)\/10/)||[])[1]||0);
+                      return pB - pA;
+                    })
+                    .map(issue=>{
+                      const typeLabel = issue.labels.find(l=>['bug','suggestion','performance','ui','complaint'].includes(l));
+                      const typeIcon  = {bug:'🐛',suggestion:'💡',performance:'⚡',ui:'🎨',complaint:'⚠️'}[typeLabel]||'📝';
+                      const pMatch    = issue.body?.match(/Priority.*?(\d+)\/10/);
+                      const priority  = pMatch ? parseInt(pMatch[1]) : 0;
+                      const prioCol   = priority>=8?red:priority>=5?amb:txt3;
+                      const isOpen    = issue.state==='open';
+                      return (
+                        <tr key={issue.number} style={{background:isOpen?"rgba(255,107,0,0.02)":"rgba(63,185,80,0.02)"}}>
+                          <td style={{...C.td,color:txt3}}>#{issue.number}</td>
+                          <td style={{...C.td}}><span style={{fontSize:12}}>{typeIcon}</span></td>
+                          <td style={{...C.td,color:prioCol,fontWeight:700}}>{priority>0?`${priority}/10`:'—'}</td>
+                          <td style={{...C.td,color:txt,maxWidth:240,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>
+                            {issue.title.replace(/^\[.*?\]\s*/,'')}
+                            {issue.comments>0&&<span style={{fontSize:8,color:txt3,marginLeft:5}}>💬{issue.comments}</span>}
+                          </td>
+                          <td style={{...C.td,color:txt3}}>{issue.createdAt?.slice(0,10)}</td>
+                          <td style={{...C.td}}>
+                            <span style={{fontSize:9,padding:"1px 6px",borderRadius:3,
+                              background:isOpen?"rgba(255,107,0,0.12)":"rgba(63,185,80,0.1)",
+                              color:isOpen?accent:grn,border:`1px solid ${isOpen?"rgba(255,107,0,0.3)":"rgba(63,185,80,0.25)"}`}}>
+                              {isOpen?"OPEN":"CLOSED"}
+                            </span>
+                          </td>
+                          <td style={{...C.td}}>
+                            <div style={{display:"flex",gap:4}}>
+                              <button type="button" onClick={()=>window.electronAPI?.openExternal?.(issue.url)}
+                                style={{fontSize:8,padding:"2px 6px",background:bg3,border:`1px solid ${bdr}`,color:txt3,borderRadius:3,cursor:"pointer",fontFamily:mono}}>
+                                View
+                              </button>
+                              {isOpen&&(
+                                <button type="button" onClick={async()=>{
+                                  const note=window.prompt("Add a closing note (optional):")||"";
+                                  await fetch(`${BACKEND}/api/feedback/close/${issue.number}`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({comment:note})});
+                                  setFeedbackIssues(prev=>prev.map(i=>i.number===issue.number?{...i,state:'closed'}:i));
+                                }}
+                                  style={{fontSize:8,padding:"2px 6px",background:"rgba(63,185,80,0.1)",border:`1px solid rgba(63,185,80,0.25)`,color:grn,borderRadius:3,cursor:"pointer",fontFamily:mono}}>
+                                  ✓ Close
+                                </button>
+                              )}
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+      )}
+
       {/* ── SKILLS ── */}
       {tab === "skills" && <div style={C.page}>
         <div style={C.g2}>
