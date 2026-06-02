@@ -3866,7 +3866,7 @@ ${skillJournal ? `\nSKILL JOURNAL (${username}'s own recorded lessons — refere
       posting={tweetPosting}
     />}
       {/* ── SERVER TAB ── */}
-      {tab === "server" && <div style={{...C.page, gap:0, display:"flex", flexDirection:"column"}}>
+      {tab === "server" && <div style={{flex:1, padding:16, display:"flex", flexDirection:"column", gap:0, overflow:"hidden", minHeight:0}}>
         <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:10,padding:"0 2px",flexShrink:0}}>
           <div style={{display:"flex",alignItems:"center",gap:8}}>
             <span style={{width:8,height:8,borderRadius:"50%",background:grn,boxShadow:`0 0 6px ${grn}`,display:"inline-block"}}/>
