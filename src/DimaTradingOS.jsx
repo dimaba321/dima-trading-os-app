@@ -516,6 +516,7 @@ export default function DimaTradingOS() {
   const [feedbackIssues, setFeedbackIssues] = useState([]);
   const [feedbackLoading, setFeedbackLoading] = useState(false);
   const [feedbackFilter, setFeedbackFilter] = useState('all');
+  const [monthlyGoal, setMonthlyGoal] = useState(()=>{ try{return parseFloat(localStorage.getItem('dima_monthly_goal')||'500');}catch{return 500;} });
   // API key management
   const [serverConfig, setServerConfig]   = useState(null);
   const [configInputs, setConfigInputs]   = useState({ ANTHROPIC_API_KEY:'', TELEGRAM_BOT_TOKEN:'', TELEGRAM_CHAT_ID:'', NEWS_API_KEY:'', FINNHUB_API_KEY:'' });
@@ -1716,7 +1717,8 @@ ${skillJournal ? `\nSKILL JOURNAL (${username}'s own recorded lessons — refere
         const emoPats=new Set(['Emotional Buy','FOMO Entry','Averaging Down','No Clear Reason','No Pattern','']);
         if (emoPats.has(pos.pattern||'')) return true;
         const exitP=parseFloat(exit)||0;
-        if (exitP>0&&pos.stop>0&&exitP<pos.stop&&exitP<pos.entry) return true;
+        // +-$1 buffer for slippage/volatility — only flag if more than $1 past stop
+        if (exitP>0&&pos.stop>0&&exitP<(pos.stop-1.00)&&exitP<pos.entry) return true;
         const MINERS=new Set(['IREN','CIFR','MARA','CLSK','RIOT','BTBT','HUT','MSTR']);
         const maxPct=MINERS.has(ticker.toUpperCase())?0.09:0.15;
         if((pos.shares*pos.entry)/ACCOUNT>maxPct) return true;
@@ -2468,8 +2470,8 @@ ${skillJournal ? `\nSKILL JOURNAL (${username}'s own recorded lessons — refere
                     rules.push({id:'pattern', label:'Pattern: "'+( pos.pattern||'none')+'"', desc:'Entry not from an approved setup'});
 
                   // Rule 3: Exit below stop — held past stop (stop not respected)
-                  if (exitPrice > 0 && pos.stop > 0 && exitPrice < pos.stop && exitPrice < pos.entry)
-                    rules.push({id:'pastStop', label:'Exit $'+exitPrice.toFixed(2)+' is below stop $'+pos.stop.toFixed(2), desc:'You held past your stop — stop was not respected'});
+                  if (exitPrice > 0 && pos.stop > 0 && exitPrice < (pos.stop - 1.00) && exitPrice < pos.entry)
+                    rules.push({id:'pastStop', label:'Exit $'+exitPrice.toFixed(2)+' is below stop $'+pos.stop.toFixed(2)+' (>$1 past)', desc:'You held more than $1 past your stop — stop was not respected'});
 
                   // Rule 4: Position oversized — >15% account for regular, >9% for BTC miners
                   const MINERS = new Set(['IREN','CIFR','MARA','CLSK','RIOT','BTBT','HUT','MSTR']);
@@ -2997,17 +2999,43 @@ ${skillJournal ? `\nSKILL JOURNAL (${username}'s own recorded lessons — refere
             <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:10}}>
               {/* Monthly */}
               <div style={C.card}>
-                <div style={{...C.stit, marginBottom:8}}>Monthly P&L</div>
+                <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:8}}>
+                  <div style={C.stit}>Monthly P&L</div>
+                  <div style={{display:"flex",alignItems:"center",gap:6}}>
+                    <span style={{fontSize:9,color:txt3}}>Goal $</span>
+                    <input type="text" inputMode="numeric"
+                      value={monthlyGoal}
+                      onChange={e=>{
+                        const v=parseFloat(e.target.value.replace(/[^0-9.]/g,''))||0;
+                        setMonthlyGoal(v);
+                        try{localStorage.setItem('dima_monthly_goal',String(v));}catch{}
+                      }}
+                      style={{width:64,fontSize:10,padding:"2px 6px",background:elevated,border:`1px solid ${bdr2}`,color:acc||grn,borderRadius:3,fontFamily:mono,outline:"none",textAlign:"right"}}
+                    />
+                    <span style={{fontSize:9,color:txt3}}>/mo</span>
+                  </div>
+                </div>
                 {months.map(([m,s])=>{
-                  const wr = s.trades>0?(s.wins/s.trades*100).toFixed(0):'0';
-                  return <div key={m} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"5px 0",borderBottom:`1px solid ${bdr}`}}>
-                    <div>
-                      <span style={{fontSize:11,color:txt,fontWeight:600}}>{m}</span>
-                      <span style={{fontSize:9,color:txt3,marginLeft:8}}>{s.trades} trades · {wr}% WR</span>
+                  const wr    = s.trades>0?(s.wins/s.trades*100).toFixed(0):'0';
+                  const pct   = monthlyGoal>0 ? Math.min(100,(s.pnl/monthlyGoal)*100) : 0;
+                  const hit   = s.pnl >= monthlyGoal;
+                  const barCol= hit ? grn : s.pnl > 0 ? amb : red;
+                  return <div key={m} style={{padding:"6px 0",borderBottom:`1px solid ${bdr}`}}>
+                    <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:3}}>
+                      <div>
+                        <span style={{fontSize:11,color:txt,fontWeight:600}}>{m}</span>
+                        <span style={{fontSize:9,color:txt3,marginLeft:8}}>{s.trades} trades · {wr}% WR</span>
+                        {hit && <span style={{fontSize:8,marginLeft:6,color:grn,fontWeight:700}}>✓ GOAL</span>}
+                      </div>
+                      <span style={{fontSize:12,fontWeight:700,color:s.pnl>=0?grn:red}}>
+                        {s.pnl>=0?'+':''}${s.pnl.toFixed(0)}
+                      </span>
                     </div>
-                    <span style={{fontSize:12,fontWeight:700,color:s.pnl>=0?grn:red}}>
-                      {s.pnl>=0?'+':''}${s.pnl.toFixed(0)}
-                    </span>
+                    {monthlyGoal > 0 && (
+                      <div style={{height:3,background:bdr,borderRadius:2,overflow:"hidden"}}>
+                        <div style={{width:`${Math.max(0,pct)}%`,height:"100%",background:barCol,borderRadius:2,transition:"width 0.3s",boxShadow:hit?`0 0 6px ${grn}`:undefined}}/>
+                      </div>
+                    )}
                   </div>;
                 })}
               </div>
