@@ -3010,7 +3010,7 @@ ${skillJournal ? `\nSKILL JOURNAL (${username}'s own recorded lessons — refere
                         setMonthlyGoal(v);
                         try{localStorage.setItem('dima_monthly_goal',String(v));}catch{}
                       }}
-                      style={{width:64,fontSize:10,padding:"2px 6px",background:elevated,border:`1px solid ${bdr2}`,color:acc||grn,borderRadius:3,fontFamily:mono,outline:"none",textAlign:"right"}}
+                      style={{width:64,fontSize:10,padding:"2px 6px",background:elevated,border:`1px solid ${bdr2}`,color:accent,borderRadius:3,fontFamily:mono,outline:"none",textAlign:"right"}}
                     />
                     <span style={{fontSize:9,color:txt3}}>/mo</span>
                   </div>
