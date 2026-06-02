@@ -630,6 +630,7 @@ export default function DimaTradingOS() {
   const [updateDownloading,setUpdateDownloading]= useState(false);
   const [updateProgress,   setUpdateProgress]   = useState(0);
   const [updateReady,      setUpdateReady]      = useState(false);
+  const [updateUpToDate,   setUpdateUpToDate]   = useState(false);
   const [appVersion,     setAppVersion]     = useState('1.0');
 
   const wlInputRef = React.useRef(null);
@@ -780,11 +781,11 @@ export default function DimaTradingOS() {
 
   // Subscribe to update-available notifications from main process
   useEffect(() => {
-    window.electronAPI?.onUpdateAvailable?.(info => setUpdateInfo(info));
+    window.electronAPI?.onUpdateAvailable?.(info => { setUpdateInfo(info); setUpdateChecking(false); });
     window.electronAPI?.onUpdateProgress?.(d => { setUpdateDownloading(true); setUpdateProgress(d.percent); });
     window.electronAPI?.onUpdateDownloaded?.(() => { setUpdateDownloading(false); setUpdateReady(true); });
-    window.electronAPI?.onUpdateNotAvailable?.(() => { setUpdateChecking(false); });
-    window.electronAPI?.onUpdateError?.(() => { setUpdateDownloading(false); setUpdateChecking(false); });
+    window.electronAPI?.onUpdateNotAvailable?.(() => { setUpdateChecking(false); setUpdateUpToDate(true); setTimeout(()=>setUpdateUpToDate(false), 4000); });
+    window.electronAPI?.onUpdateError?.((e) => { setUpdateDownloading(false); setUpdateChecking(false); console.warn('Update error:', e); });
     // Load real app version from Electron
     window.electronAPI?.getVersion?.().then(v => { if (v) setAppVersion(v); }).catch(() => {});
   }, []);
@@ -2150,9 +2151,15 @@ ${skillJournal ? `\nSKILL JOURNAL (${username}'s own recorded lessons — refere
                   ) : null}
                   <button type="button"
                     disabled={updateChecking||updateDownloading}
-                    onClick={()=>{ setUpdateChecking(true); window.electronAPI?.checkForUpdates?.(); }}
+                    onClick={()=>{
+                      setUpdateChecking(true);
+                      window.electronAPI?.checkForUpdates?.()
+                        ?.catch(()=>setUpdateChecking(false));
+                      // Safety timeout — never stay stuck on "Checking..."
+                      setTimeout(()=>setUpdateChecking(false), 15000);
+                    }}
                     style={{...C.btn(""),marginTop:4,fontSize:10,padding:"4px 8px",marginBottom:0,opacity:(updateChecking||updateDownloading)?0.6:1}}>
-                    {updateChecking?"Checking...":"Check for Updates"}
+                    {updateChecking?"Checking...":updateUpToDate?"✓ Up to date":"Check for Updates"}
                   </button>
                   {/* Report Bug — glowing red */}
                   <button type="button"
