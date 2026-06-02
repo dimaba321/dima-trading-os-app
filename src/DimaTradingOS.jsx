@@ -627,24 +627,25 @@ export default function DimaTradingOS() {
   const eqRef = useRef(null), ptRef = useRef(null);
   const eqChart = useRef(null), ptChart = useRef(null);
 
-  // ── Dynamic rankGlow keyframe — updates when ELO changes ──────
-  // Uses currentElo (not eloRank) to avoid TDZ — eloRank is computed later in render
+  // ── Dynamic rankGlow keyframe — based on calibration state (safe at hook-time) ──
+  // calibration IS a useState value — no TDZ. currentElo/eloRank are computed later.
   useEffect(() => {
-    const rank = getRankFromElo(currentElo);
-    const c    = rank?.color || '#00BFFF';
+    const calElo = (calibration?.startingElo ?? 0) + (calibration ? 684 : 0); // approximate live ELO
+    const rank   = getRankFromElo(calElo);
+    const c      = rank?.color || '#00BFFF';
     const toRgba = (hex, a) => {
       try {
-        const r = parseInt(hex.slice(1,3),16), g = parseInt(hex.slice(3,5),16), b = parseInt(hex.slice(5,7),16);
+        const r=parseInt(hex.slice(1,3),16), g=parseInt(hex.slice(3,5),16), b=parseInt(hex.slice(5,7),16);
         return `rgba(${r},${g},${b},${a})`;
       } catch { return `rgba(0,191,255,${a})`; }
     };
     let el = document.getElementById('rank-glow-kf');
-    if (!el) { el = document.createElement('style'); el.id='rank-glow-kf'; document.head.appendChild(el); }
+    if (!el) { el=document.createElement('style'); el.id='rank-glow-kf'; document.head.appendChild(el); }
     el.textContent = `@keyframes rankGlow {
-      0%,100% { box-shadow: 0 0 12px ${toRgba(c,.25)}, 0 0 4px ${toRgba(c,.15)}, inset 0 0 14px ${toRgba(c,.05)}; border-color: ${toRgba(c,.4)}; }
-      50%      { box-shadow: 0 0 38px ${toRgba(c,.7)}, 0 0 16px ${toRgba(c,.45)}, inset 0 0 24px ${toRgba(c,.12)}; border-color: ${toRgba(c,.9)}; }
+      0%,100% { box-shadow:0 0 12px ${toRgba(c,.25)},0 0 4px ${toRgba(c,.15)},inset 0 0 14px ${toRgba(c,.05)}; border-color:${toRgba(c,.4)}; }
+      50%      { box-shadow:0 0 38px ${toRgba(c,.7)},0 0 16px ${toRgba(c,.45)},inset 0 0 24px ${toRgba(c,.12)}; border-color:${toRgba(c,.9)}; }
     }`;
-  }, [currentElo]);
+  }, [calibration]);
 
   // ── CSS keyframes injection ────────────────────────────────
   useEffect(() => {
