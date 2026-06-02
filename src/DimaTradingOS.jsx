@@ -789,6 +789,15 @@ export default function DimaTradingOS() {
     window.electronAPI?.getVersion?.().then(v => { if (v) setAppVersion(v); }).catch(() => {});
   }, []);
 
+  // Reload log history when user switches to the Server tab
+  useEffect(() => {
+    if (tab === 'server' && serverLogs.length === 0) {
+      window.electronAPI?.getLogHistory?.().then(lines => {
+        if (lines?.length) setServerLogs(lines.map(l => l.line));
+      }).catch(() => {});
+    }
+  }, [tab]);
+
   // Auto-scroll server log to bottom when new lines arrive and tab is open
   useEffect(() => {
     if (tab === 'server') serverLogEndRef.current?.scrollIntoView({ behavior: 'smooth' });
