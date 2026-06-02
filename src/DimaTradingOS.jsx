@@ -363,15 +363,24 @@ function TweetModal({ draft, onTextChange, onClose, onPost, posting }) {
 const DATA_VERSION = "2026-05-30-v5";  // force reload from SQLite — fixed stop=0 bug
 
 // Atomic version check — runs ONCE before component mounts.
-// Clears BOTH keys together so useState never sees a partial reset.
+// Clears localStorage. For customer builds, also wipes DB if it has leftover personal data.
 (function checkDataVersion() {
   try {
-    if (localStorage.getItem("dima_data_ver") !== DATA_VERSION) {
+    const stored = localStorage.getItem("dima_data_ver");
+    if (stored !== DATA_VERSION) {
       localStorage.removeItem("dima_p5");
       localStorage.removeItem("dima_c5");
-      localStorage.removeItem("dima_deposits");  // clear old deposits — ACCOUNT already includes everything
+      localStorage.removeItem("dima_deposits");
+      localStorage.removeItem("dima_calibration");
+      localStorage.removeItem("dima_account_value");
       localStorage.setItem("dima_data_ver", DATA_VERSION);
       console.log('[data] Reset to defaults v' + DATA_VERSION);
+      // For customer builds: also wipe backend DB of any leftover personal data
+      if (DATA_VERSION.startsWith('customer-')) {
+        fetch('http://localhost:3000/api/trades/closed', { method:'PUT', headers:{'Content-Type':'application/json'}, body:'[]' }).catch(()=>{});
+        fetch('http://localhost:3000/api/trades/positions', { method:'PUT', headers:{'Content-Type':'application/json'}, body:'[]' }).catch(()=>{});
+        console.log('[data] Customer build — wiped backend DB of personal data');
+      }
     }
   } catch {}
 })();
