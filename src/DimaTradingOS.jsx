@@ -631,7 +631,8 @@ export default function DimaTradingOS() {
   useEffect(() => {
     const style = document.createElement('style');
     style.textContent = `
-      @keyframes sweep { 0% { transform: translateX(-100%); } 100% { transform: translateX(100%); } }
+      @keyframes sweep { 0% { transform: translateX(-100%); } 100% { transform: translateX(300%); } }
+      @keyframes rankGlow { 0%,100% { filter: brightness(1); } 50% { filter: brightness(1.15); } }
       @keyframes pulse { 0%,100% { opacity:1; box-shadow: 0 0 0 0 rgba(20,241,149,0.55); } 50% { opacity:0.6; box-shadow: 0 0 0 5px rgba(20,241,149,0); } }
       @keyframes flashUp { 0% { color: #14f195; } 100% {} }
       @keyframes flashDown { 0% { color: #ff2d55; } 100% {} }
@@ -2255,8 +2256,16 @@ ${skillJournal ? `\nSKILL JOURNAL (${username}'s own recorded lessons — refere
           </div>
 
           <div>
-            <div style={{ ...C.card, textAlign: "center", border:`1px solid ${eloRank.color}55` }}>
-              <img src={eloRank.img} alt={eloRank.name} style={{width:80,height:80,objectFit:"contain",marginBottom:4,filter:`drop-shadow(0 0 10px ${eloRank.color}99)`}}/>
+            <div style={{ ...C.card, textAlign: "center",
+              border:`1.5px solid ${eloRank.color}88`,
+              boxShadow:`0 0 18px ${eloRank.color}33, 0 0 6px ${eloRank.color}22, inset 0 0 20px ${eloRank.color}08`,
+              animation:"rankGlow 3s ease-in-out infinite",
+              position:"relative", overflow:"hidden" }}>
+              {/* Animated sweep line */}
+              <div style={{position:"absolute",top:0,left:0,right:0,height:2,overflow:"hidden",pointerEvents:"none"}}>
+                <div style={{position:"absolute",inset:0,width:"60%",background:`linear-gradient(90deg,transparent,${eloRank.color},transparent)`,animation:"sweep 4s linear infinite",opacity:0.8}}/>
+              </div>
+              <img src={eloRank.img} alt={eloRank.name} style={{width:80,height:80,objectFit:"contain",marginBottom:4,filter:`drop-shadow(0 0 14px ${eloRank.color}cc) drop-shadow(0 0 6px ${eloRank.color}88)`}}/>
               <div style={{ fontSize: 15, fontWeight: 800, color: eloRank.color, letterSpacing:"0.05em" }}>{eloRank.name.toUpperCase()}</div>
               <div style={{ fontSize: 20, fontWeight: 700, color: eloRank.color, margin:"2px 0", fontFamily: display }}>{currentElo.toLocaleString()} <span style={{fontSize:10,fontWeight:400,color:txt3,fontFamily:mono}}>ELO</span></div>
               <div style={{ fontSize: 9, color: txt3 }}>{eloRank.desc}</div>
@@ -2560,7 +2569,14 @@ ${skillJournal ? `\nSKILL JOURNAL (${username}'s own recorded lessons — refere
         <div style={C.g2}>
           <div>
             {/* ── CALIBRATION + ELO RANK CARD ── */}
-            <div style={{...C.rcard(eloRank.color), display:"flex", flexDirection:"column", alignItems:"center", padding:"28px 24px"}}>
+            <div style={{...C.rcard(eloRank.color), display:"flex", flexDirection:"column", alignItems:"center", padding:"28px 24px",
+              boxShadow:`0 0 40px ${eloRank.color}44, 0 0 15px ${eloRank.color}22, inset 0 0 40px ${eloRank.color}0a`,
+              animation:"rankGlow 3s ease-in-out infinite",
+              position:"relative", overflow:"hidden"}}>
+              {/* Animated sweep line */}
+              <div style={{position:"absolute",top:0,left:0,right:0,height:2,overflow:"hidden",pointerEvents:"none"}}>
+                <div style={{position:"absolute",inset:0,width:"50%",background:`linear-gradient(90deg,transparent,${eloRank.color},transparent)`,animation:"sweep 4s linear infinite",opacity:0.9}}/>
+              </div>
               <img src={eloRank.img} alt={eloRank.name}
                    style={{width:140,height:140,objectFit:"contain",marginBottom:14,
                            filter:`drop-shadow(0 0 28px ${eloRank.color}cc) drop-shadow(0 0 10px ${eloRank.color}66)`}}/>
