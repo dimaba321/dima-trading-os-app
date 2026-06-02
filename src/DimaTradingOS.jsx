@@ -632,7 +632,10 @@ export default function DimaTradingOS() {
     const style = document.createElement('style');
     style.textContent = `
       @keyframes sweep { 0% { transform: translateX(-100%); } 100% { transform: translateX(300%); } }
-      @keyframes rankGlow { 0%,100% { filter: brightness(1); } 50% { filter: brightness(1.15); } }
+      @keyframes rankGlow {
+        0%,100% { box-shadow: 0 0 18px var(--rc)33, 0 0 6px var(--rc)22, inset 0 0 20px var(--rc)08; border-color: var(--rc)66; }
+        50%      { box-shadow: 0 0 45px var(--rc)66, 0 0 20px var(--rc)44, inset 0 0 30px var(--rc)14; border-color: var(--rc)cc; }
+      }
       @keyframes pulse { 0%,100% { opacity:1; box-shadow: 0 0 0 0 rgba(20,241,149,0.55); } 50% { opacity:0.6; box-shadow: 0 0 0 5px rgba(20,241,149,0); } }
       @keyframes flashUp { 0% { color: #14f195; } 100% {} }
       @keyframes flashDown { 0% { color: #ff2d55; } 100% {} }
@@ -2257,8 +2260,8 @@ ${skillJournal ? `\nSKILL JOURNAL (${username}'s own recorded lessons — refere
 
           <div>
             <div style={{ ...C.card, textAlign: "center",
-              border:`1.5px solid ${eloRank.color}88`,
-              boxShadow:`0 0 18px ${eloRank.color}33, 0 0 6px ${eloRank.color}22, inset 0 0 20px ${eloRank.color}08`,
+              '--rc': eloRank.color,
+              border:`1.5px solid ${eloRank.color}66`,
               animation:"rankGlow 3s ease-in-out infinite",
               position:"relative", overflow:"hidden" }}>
               {/* Animated sweep line */}
@@ -2570,7 +2573,8 @@ ${skillJournal ? `\nSKILL JOURNAL (${username}'s own recorded lessons — refere
           <div>
             {/* ── CALIBRATION + ELO RANK CARD ── */}
             <div style={{...C.rcard(eloRank.color), display:"flex", flexDirection:"column", alignItems:"center", padding:"28px 24px",
-              boxShadow:`0 0 40px ${eloRank.color}44, 0 0 15px ${eloRank.color}22, inset 0 0 40px ${eloRank.color}0a`,
+              '--rc': eloRank.color,
+              border:`1.5px solid ${eloRank.color}66`,
               animation:"rankGlow 3s ease-in-out infinite",
               position:"relative", overflow:"hidden"}}>
               {/* Animated sweep line */}
@@ -2697,7 +2701,7 @@ ${skillJournal ? `\nSKILL JOURNAL (${username}'s own recorded lessons — refere
               <div style={C.g2e}>
                 {[
                   ["Net P&L", (stats.net >= 0 ? "+" : "") + "$" + Math.abs(stats.net).toFixed(2), pnlCol],
-                  ["Return", (stats.net / ACCOUNT * 100).toFixed(2) + "%", pnlCol],
+                  ["Return", (accountValue > 0 ? (stats.net / accountValue * 100).toFixed(2) + "%" : ACCOUNT > 0 ? (stats.net / ACCOUNT * 100).toFixed(2) + "%" : "—"), pnlCol],
                   ["Win rate", stats.wr.toFixed(1) + "%", amb],
                   ["Profit factor", stats.pf.toFixed(2), pnlCol],
                   ["Avg win", "+$" + stats.aw.toFixed(0), grn],
