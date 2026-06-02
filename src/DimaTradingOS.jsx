@@ -509,6 +509,13 @@ export default function DimaTradingOS() {
   // Skill journal
   const [skillJournal, setSkillJournal] = useState('');
   const [showPatternHelp, setShowPatternHelp] = useState(false);
+  const [showFeedbackForm, setShowFeedbackForm] = useState(false);
+  const [feedbackForm, setFeedbackForm] = useState({ type:'bug', title:'', description:'' });
+  const [feedbackSubmitting, setFeedbackSubmitting] = useState(false);
+  const [feedbackResult, setFeedbackResult] = useState(null);
+  const [feedbackIssues, setFeedbackIssues] = useState([]);
+  const [feedbackLoading, setFeedbackLoading] = useState(false);
+  const [feedbackFilter, setFeedbackFilter] = useState('all');
   // API key management
   const [serverConfig, setServerConfig]   = useState(null);
   const [configInputs, setConfigInputs]   = useState({ ANTHROPIC_API_KEY:'', TELEGRAM_BOT_TOKEN:'', TELEGRAM_CHAT_ID:'', NEWS_API_KEY:'', FINNHUB_API_KEY:'' });
@@ -2105,6 +2112,13 @@ ${skillJournal ? `\nSKILL JOURNAL (${username}'s own recorded lessons — refere
                     onClick={()=>{ setUpdateChecking(true); window.electronAPI?.checkForUpdates?.(); }}
                     style={{...C.btn(""),marginTop:4,fontSize:10,padding:"4px 8px",marginBottom:0,opacity:(updateChecking||updateDownloading)?0.6:1}}>
                     {updateChecking?"Checking...":"Check for Updates"}
+                  </button>
+                  {/* Report Bug — glowing red */}
+                  <button type="button"
+                    onClick={()=>setShowFeedbackForm(true)}
+                    style={{...C.btn("red"),marginTop:4,fontSize:10,padding:"4px 8px",marginBottom:0,
+                      boxShadow:"0 0 8px rgba(255,45,85,0.4)",animation:"pulse 2s ease-in-out infinite"}}>
+                    ⚠ Report a Bug / Suggestion
                   </button>
                 </div>
                 {/* Username */}
@@ -3936,6 +3950,98 @@ ${skillJournal ? `\nSKILL JOURNAL (${username}'s own recorded lessons — refere
           <div ref={serverLogEndRef}/>
         </div>
       </div>}
+
+    {/* ── FEEDBACK FORM MODAL ── */}
+    {showFeedbackForm && (
+      <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.8)",zIndex:9999,display:"flex",alignItems:"center",justifyContent:"center",padding:20}}
+        onClick={()=>{ setShowFeedbackForm(false); setFeedbackResult(null); }}>
+        <div style={{background:bg2,border:`1px solid ${bdr2}`,borderRadius:10,width:"min(500px,95vw)",display:"flex",flexDirection:"column"}}
+          onClick={e=>e.stopPropagation()}>
+          <div style={{padding:"14px 18px",borderBottom:`1px solid ${bdr}`,display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+            <div style={{fontSize:13,fontWeight:700,color:red,fontFamily:display}}>⚠ Report a Bug / Suggestion</div>
+            <button type="button" onClick={()=>{ setShowFeedbackForm(false); setFeedbackResult(null); }}
+              style={{background:"none",border:`1px solid ${bdr}`,color:txt3,borderRadius:4,padding:"3px 10px",cursor:"pointer",fontFamily:mono,fontSize:11}}>×</button>
+          </div>
+          <div style={{padding:"16px 18px"}}>
+            {feedbackResult ? (
+              <div style={{textAlign:"center",padding:"20px 0"}}>
+                {feedbackResult.ok ? (
+                  <>
+                    <div style={{fontSize:24,marginBottom:10}}>{feedbackResult.duplicate ? '📋' : '✅'}</div>
+                    <div style={{fontSize:13,fontWeight:700,color:grn,marginBottom:6}}>
+                      {feedbackResult.duplicate ? 'Already reported — you\'re not alone!' : 'Report submitted — thank you!'}
+                    </div>
+                    <div style={{fontSize:10,color:txt3,marginBottom:12}}>
+                      {feedbackResult.duplicate
+                        ? `This issue already has ${feedbackResult.issueNumber ? `#${feedbackResult.issueNumber}` : 'an open report'} — your +1 was added.`
+                        : `Issue #${feedbackResult.issueNumber} created. Priority: ${feedbackResult.priority}/10.`}
+                    </div>
+                    {feedbackResult.issueUrl && (
+                      <div style={{fontSize:10,color:accent}}>{feedbackResult.issueUrl}</div>
+                    )}
+                  </>
+                ) : (
+                  <>
+                    <div style={{fontSize:24,marginBottom:10}}>⚠️</div>
+                    <div style={{fontSize:12,color:amb,marginBottom:6}}>Could not submit</div>
+                    <div style={{fontSize:10,color:txt3}}>{feedbackResult.reason || 'Please try again.'}</div>
+                  </>
+                )}
+                <button type="button" onClick={()=>{ setShowFeedbackForm(false); setFeedbackResult(null); setFeedbackForm({type:'bug',title:'',description:''}); }}
+                  style={{...C.btn("green"),marginTop:16,padding:"6px 20px",width:"auto"}}>Close</button>
+              </div>
+            ) : (
+              <>
+                <div style={{marginBottom:10}}>
+                  <label style={C.fl}>Type</label>
+                  <select value={feedbackForm.type} onChange={e=>setFeedbackForm(f=>({...f,type:e.target.value}))}
+                    style={{...C.fi,marginBottom:0}}>
+                    <option value="bug">🐛 Bug — something is broken</option>
+                    <option value="suggestion">💡 Suggestion — feature idea</option>
+                    <option value="performance">⚡ Performance — slow or laggy</option>
+                    <option value="ui">🎨 UI — visual or layout issue</option>
+                    <option value="complaint">⚠️ Complaint — general feedback</option>
+                  </select>
+                </div>
+                <div style={{marginBottom:10}}>
+                  <label style={C.fl}>Title <span style={{color:red}}>*</span></label>
+                  <input type="text" placeholder="Brief description of the issue..."
+                    value={feedbackForm.title} onChange={e=>setFeedbackForm(f=>({...f,title:e.target.value}))}
+                    style={{...C.fi,marginBottom:0}}/>
+                </div>
+                <div style={{marginBottom:14}}>
+                  <label style={C.fl}>Details <span style={{color:red}}>*</span></label>
+                  <textarea placeholder="What happened? Steps to reproduce? What did you expect?"
+                    value={feedbackForm.description} onChange={e=>setFeedbackForm(f=>({...f,description:e.target.value}))}
+                    rows={4} style={{...C.fi,marginBottom:0,resize:"vertical",fontFamily:mono}}/>
+                </div>
+                <div style={{fontSize:8,color:txt3,marginBottom:12}}>
+                  App version v{appVersion} is automatically included. Your report goes to the developer only.
+                </div>
+                <button type="button" disabled={feedbackSubmitting || !feedbackForm.title || !feedbackForm.description}
+                  onClick={async()=>{
+                    setFeedbackSubmitting(true);
+                    try {
+                      const r = await fetch(`${BACKEND}/api/feedback/submit`,{
+                        method:'POST', headers:{'Content-Type':'application/json'},
+                        body: JSON.stringify({...feedbackForm, version: appVersion}),
+                      });
+                      const data = await r.json();
+                      setFeedbackResult(data);
+                    } catch(e) {
+                      setFeedbackResult({ok:false, reason:'Network error — check your connection.'});
+                    }
+                    setFeedbackSubmitting(false);
+                  }}
+                  style={{...C.btn("red"),width:"100%",fontSize:11,fontWeight:700,opacity:feedbackSubmitting?0.6:1}}>
+                  {feedbackSubmitting ? 'Submitting...' : '⚠ Submit Report'}
+                </button>
+              </>
+            )}
+          </div>
+        </div>
+      </div>
+    )}
 
     {/* ── PATTERN HELP MODAL ── */}
     {showPatternHelp && (
