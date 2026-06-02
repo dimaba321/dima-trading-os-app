@@ -6,8 +6,9 @@ const path = require('path');
 const fs   = require('fs');
 const { initAutoUpdater, checkSilently } = require('./updater');
 
-// ── Keep userData on D: drive ────────────────────────────────────────────────
-app.setPath('userData', path.join(__dirname, '..', '.electron-data'));
+// Use system AppData so userData survives app updates
+// Default: C:\Users\{user}\AppData\Roaming\Dima Trading OS
+// (already set correctly by Electron — just remove the custom path override)
 
 const BACKEND_PORT  = 3000;
 const RENDERER_PORT = 4173;   // tiny file server for dist/

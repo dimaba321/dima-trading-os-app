@@ -447,6 +447,8 @@ export default function DimaTradingOS() {
   const [btc, setBtc] = useState({ price: null, change: null });
   const [time, setTime] = useState(getTime());
   const [form, setForm] = useState({ ticker: "", shares: "", entry: "", stop: "", t1: "", t2: "", pattern: "", rationale: "", notes: "" });
+  const [formPatterns, setFormPatterns] = useState([]);
+  const [formPatternSel, setFormPatternSel] = useState("");
   const [cf, setCf] = useState({ ticker: "", exit: "", shares: "" });
 
   const [prices, setPrices] = useState({});
@@ -480,6 +482,7 @@ export default function DimaTradingOS() {
   const [keyTesting,    setKeyTesting]    = useState(false);
   const [agentStats, setAgentStats] = useState(null);
   const [agentStatsLoading, setAgentStatsLoading] = useState(false);
+  const [weeklyReportLoading, setWeeklyReportLoading] = useState(false);
   const [universeStatus, setUniverseStatus] = useState(null);
   const [universeScanRunning, setUniverseScanRunning] = useState(false);
   const [serverLogs, setServerLogs] = useState([]);
@@ -561,6 +564,11 @@ export default function DimaTradingOS() {
   // Trading Diary
   const [diaryLoading, setDiaryLoading]   = useState(false);
   const [diaryResult,  setDiaryResult]    = useState(null); // {success, filePath, error}
+  const [showDiaryPicker, setShowDiaryPicker] = useState(false);
+  const [diaryPickerMonth, setDiaryPickerMonth] = useState(() => {
+    const now = new Date();
+    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+  });
   // Auto-update
   const [updateInfo,       setUpdateInfo]       = useState(null);
   const [updateChecking,   setUpdateChecking]   = useState(false);
@@ -1009,6 +1017,49 @@ export default function DimaTradingOS() {
     const badTickers = Object.entries(tickerStats).filter(([,s])=>s.total>=5&&s.wins/s.total<0.4).map(([k])=>k);
     const confidence = Math.min(1, total / 30);
     return { total, winRate, profitFactor, expectancy, avgWin, avgLoss, maxDD, recentWR, recentPF, recentCount:recent.length, edgeDeterioration, bestTicker, bestTickerPnl, badTickers, confidence };
+  }
+
+  // ── agent weekly report ──────────────────────────────────
+  async function generateAgentWeeklyReport() {
+    setWeeklyReportLoading(true);
+    try {
+      const oneWeekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+      const recentSigs = (agentStats?.recentSignals || []).filter(s => {
+        if (!s.receivedAt && !s.date) return true;
+        const d = new Date(s.receivedAt || s.date);
+        return d >= oneWeekAgo;
+      });
+      const scoutCount = recentSigs.filter(s => s.setupType?.includes('SMA') || s.setup?.includes('SMA')).length;
+      const hotCount = recentSigs.filter(s => s.setupType?.includes('MOMENTUM') || s.setup?.includes('HOT')).length;
+      const ceoApproved = recentSigs.filter(s => s.confirmed).length;
+      const resolved = recentSigs.filter(s => s.hitTarget || s.hitStop);
+      const wins = resolved.filter(s => s.hitTarget).length;
+      const winRate = resolved.length > 0 ? Math.round(wins / resolved.length * 100) : 0;
+      const prompt = `AGENT WEEKLY ACTIVITY REPORT — week ending ${new Date().toDateString()}
+
+SIGNAL SUMMARY (last 7 days):
+- Total signals tracked: ${recentSigs.length}
+- Scout SMA setups found: ${scoutCount}
+- WhatsHot momentum flags: ${hotCount}
+- CEO approved signals: ${ceoApproved}
+- Resolved: ${resolved.length} (${wins} hit target, ${resolved.length - wins} hit stop)
+- Signal win rate: ${winRate}%
+
+OVERALL STATS (all-time):
+- Win rate: ${(statsForDisplay?.winRate * 100 || 0).toFixed(0)}%
+- Profit factor: ${statsForDisplay?.profitFactor?.toFixed(2) || 'N/A'}
+- Expectancy: $${statsForDisplay?.expectancy?.toFixed(2) || 'N/A'}/trade
+
+RECENT SIGNAL TICKERS: ${recentSigs.slice(0, 10).map(s => s.ticker).join(', ') || 'none'}
+
+Summarize what each agent did this week: Scout found ${scoutCount} setups, WhatsHot flagged ${hotCount} hot stocks, CEO approved ${ceoApproved} signals. What patterns are working? What should be adjusted? Be direct and specific.`;
+      sp(prompt);
+      setTab('chat');
+    } catch(e) {
+      sp(`Generate agent weekly report — week ending ${new Date().toDateString()}. Summarize signal activity, what's working, what to adjust.`);
+      setTab('chat');
+    }
+    setWeeklyReportLoading(false);
   }
 
   // ── take trade from signal ───────────────────────────────
@@ -1592,6 +1643,8 @@ ${skillJournal ? `\nSKILL JOURNAL (${username}'s own recorded lessons — refere
     const p = { id: Date.now(), ticker: tickerUpper, shares: parseFloat(shares), entry: parseFloat(entry), stop: parseFloat(stop), t1: parseFloat(t1) || 0, t2: parseFloat(t2) || 0, pattern, rationale, notes, date: new Date().toISOString().split("T")[0] };
     setPositions(prev => [...prev, p]);
     setForm({ ticker: "", shares: "", entry: "", stop: "", t1: "", t2: "", pattern: "", rationale: "", notes: "" });
+    setFormPatterns([]);
+    setFormPatternSel("");
     generateTweetPreview('OPEN',{ticker:p.ticker,entry:p.entry,stop:p.stop,target:p.t1||null});
     sp(`I just added ${p.ticker} — ${p.shares} shares at $${p.entry}, stop $${p.stop}, target $${p.t1}. Pattern: ${p.pattern}.${p.rationale ? ` My rationale: "${p.rationale}"` : ""} Analyze this trade against my 150 SMA system and tell me if my reasoning holds.`);
   }
@@ -1803,7 +1856,7 @@ ${skillJournal ? `\nSKILL JOURNAL (${username}'s own recorded lessons — refere
 
         {/* Tabs */}
         <div style={{ display: "flex", gap: 2, overflowX: "auto", flexShrink: 1, minWidth: 0 }}>
-          {[["dash","Dashboard"],["pos","Positions"],["stats","Statistics"],["hist","History"],["analytics","Analytics"],["chat","Chat"],["skills","Skills"],["agents","Agents ◇"],["server","⬡ Server"]].map(([id, label]) => {
+          {[["dash","Dashboard"],["pos","Positions"],["stats","Statistics"],["hist","History"],["analytics","Analytics"],["chat","Chat"],["agents","Agents ◇"],["server","⬡ Server"]].map(([id, label]) => {
             const on = tab === id;
             return (
               <button key={id} type="button" style={C.tab(on)} onClick={() => setTab(id)}
@@ -1925,7 +1978,25 @@ ${skillJournal ? `\nSKILL JOURNAL (${username}'s own recorded lessons — refere
           return (
             <div style={{display:"grid",gridTemplateColumns:"2fr 1fr",gap:10,marginBottom:10}}>
               {/* Speedometer gauges */}
-              <div style={{...C.card,display:"flex",gap:10,padding:"18px 14px 10px",alignItems:"flex-start"}}>
+              <div style={{...C.card,display:"flex",gap:10,padding:"18px 14px 10px",alignItems:"flex-start",position:"relative",overflow:"hidden"}}>
+                {/* Decorative candlestick background */}
+                <svg style={{position:"absolute",inset:0,width:"100%",height:"100%",opacity:0.09,pointerEvents:"none"}} viewBox="0 0 600 210" preserveAspectRatio="xMidYMid slice">
+                  {[
+                    [18, 80,40,58,132,true],[44,70,50,48,136,true],[70,92,28,76,142,false],
+                    [96,74,46,52,132,true],[122,58,56,38,126,true],[148,86,34,70,140,false],
+                    [174,52,62,32,132,true],[200,64,50,44,142,true],[226,92,22,80,148,false],
+                    [252,68,46,48,136,true],[278,48,66,28,130,true],[304,74,40,54,142,false],
+                    [330,42,72,22,126,true],[356,62,56,42,140,true],[382,84,28,70,150,false],
+                    [408,52,62,32,134,true],[434,38,76,18,128,true],[460,68,46,50,144,false],
+                    [486,48,66,30,132,true],[512,42,72,22,140,true],[538,58,56,38,146,false],
+                    [564,44,68,26,136,true],[590,36,78,16,130,true],
+                  ].map(([x,y,h,wt,wb,bull],i) => (
+                    <g key={i}>
+                      <line x1={x+9} y1={wt} x2={x+9} y2={wb} stroke={bull?grn:red} strokeWidth="1.5"/>
+                      <rect x={x} y={y} width={18} height={h} fill={bull?grn:red} rx="1"/>
+                    </g>
+                  ))}
+                </svg>
                 <SpeedometerGauge value={fearGreed?.score?Math.round(fearGreed.score):null} title="STOCK MARKET" gId="stock"/>
                 <div style={{width:1,background:bdr,flexShrink:0}}/>
                 <SpeedometerGauge value={fngCrypto?.value?parseInt(fngCrypto.value):null} title="₿ CRYPTO" gId="crypto"/>
@@ -1939,7 +2010,33 @@ ${skillJournal ? `\nSKILL JOURNAL (${username}'s own recorded lessons — refere
                   <button type="button" onClick={()=>setTab('stats')} style={{...C.btn(""),marginBottom:4,fontSize:10,padding:"5px 10px"}}>Statistics &amp; Rank</button>
                   <button type="button" onClick={()=>quickSend("What's hot in the market today? Top 3 momentum stocks with clear catalyst, volume confirmation, and 150 SMA setup. Filter out noise.")} style={{...C.btn(""),marginBottom:4,fontSize:10,padding:"5px 10px"}}>Whats Hot ↗</button>
                   <button type="button" onClick={()=>quickSend("Give me my morning briefing. Analyze my open positions vs current market conditions and BTC price. What do I need to watch today?")} style={{...C.btn(""),marginBottom:4,fontSize:10,padding:"5px 10px"}}>Morning Briefing ↗</button>
-                  <button type="button" onClick={()=>generateTradingDiary(journalMonth)} disabled={diaryLoading} style={{...C.btn("green"),marginBottom:4,fontSize:10,fontWeight:700,padding:"5px 10px",opacity:diaryLoading?0.6:1}}>{diaryLoading?'Generating…':'Trading Diary (.docx)'}</button>
+                  {!showDiaryPicker ? (
+                    <button type="button" onClick={()=>setShowDiaryPicker(true)} disabled={diaryLoading} style={{...C.btn("green"),marginBottom:4,fontSize:10,fontWeight:700,padding:"5px 10px",opacity:diaryLoading?0.6:1}}>{diaryLoading?'Generating…':'Trading Diary (.docx)'}</button>
+                  ) : (
+                    <div style={{background:elevated,border:`1px solid ${bdr2}`,borderRadius:4,padding:"8px 10px",marginBottom:4}}>
+                      <div style={{fontSize:9,color:txt3,marginBottom:5}}>Select month for diary:</div>
+                      {(()=>{
+                        const now = new Date();
+                        const opts = [];
+                        for (let i = 0; i < 12; i++) {
+                          const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+                          const val = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}`;
+                          const lbl = d.toLocaleString("default",{month:"long",year:"numeric"});
+                          opts.push({val,lbl});
+                        }
+                        return (
+                          <select value={diaryPickerMonth} onChange={e=>setDiaryPickerMonth(e.target.value)}
+                            style={{...C.fi,marginBottom:6,fontSize:10,padding:"4px 7px"}}>
+                            {opts.map(o=><option key={o.val} value={o.val}>{o.lbl}</option>)}
+                          </select>
+                        );
+                      })()}
+                      <div style={{display:"flex",gap:5}}>
+                        <button type="button" onClick={()=>setShowDiaryPicker(false)} style={{...C.btn(""),fontSize:9,padding:"4px 6px",flex:1,marginBottom:0}}>Cancel</button>
+                        <button type="button" onClick={()=>{setShowDiaryPicker(false);generateTradingDiary(diaryPickerMonth);}} style={{...C.btn("green"),fontSize:9,padding:"4px 6px",flex:2,marginBottom:0,fontWeight:700}}>Generate</button>
+                      </div>
+                    </div>
+                  )}
                   {/* Update section */}
                   {updateReady ? (
                     <div style={{marginTop:6,padding:"8px 10px",background:"rgba(63,185,80,0.1)",border:"1px solid rgba(63,185,80,0.4)",borderRadius:4}}>
@@ -2238,16 +2335,41 @@ ${skillJournal ? `\nSKILL JOURNAL (${username}'s own recorded lessons — refere
                 <div><label style={C.fl}>Target 1</label><input style={C.fi} type="number" step="0.01" value={form.t1} onChange={e => setForm(f => ({ ...f, t1: e.target.value }))} placeholder="216.00" /></div>
                 <div><label style={C.fl}>Target 2</label><input style={C.fi} type="number" step="0.01" value={form.t2} onChange={e => setForm(f => ({ ...f, t2: e.target.value }))} placeholder="260.00" /></div>
               </div>
-              {/* PATTERN — mandatory */}
+              {/* PATTERN — mandatory, supports multiple */}
               <div style={{ marginBottom: 5 }}>
                 <label style={{ ...C.fl, color: !form.pattern ? red : txt3 }}>Pattern ★ required</label>
-                <select
-                  style={{ ...C.fi, marginBottom: 5, color: form.pattern ? txt : txt3, borderColor: !form.pattern ? "rgba(248,81,73,0.5)" : bdr2 }}
-                  value={form.pattern}
-                  onChange={e => setForm(f => ({ ...f, pattern: e.target.value }))}>
-                  <option value="">&mdash; select pattern &mdash;</option>
-                  {TRADE_PATTERNS.map(p => <option key={p} value={p}>{p}</option>)}
-                </select>
+                <div style={{ display: "flex", gap: 5, alignItems: "center", marginBottom: 4 }}>
+                  <select
+                    style={{ ...C.fi, marginBottom: 0, flex: 1, color: formPatternSel ? txt : txt3, borderColor: !form.pattern ? "rgba(248,81,73,0.5)" : bdr2 }}
+                    value={formPatternSel}
+                    onChange={e => setFormPatternSel(e.target.value)}>
+                    <option value="">&mdash; select pattern &mdash;</option>
+                    {TRADE_PATTERNS.map(p => <option key={p} value={p}>{p}</option>)}
+                  </select>
+                  <button type="button"
+                    onClick={() => {
+                      if (!formPatternSel) return;
+                      const next = formPatterns.includes(formPatternSel) ? formPatterns : [...formPatterns, formPatternSel];
+                      setFormPatterns(next);
+                      setForm(f => ({ ...f, pattern: next.join(", ") }));
+                      setFormPatternSel("");
+                    }}
+                    style={{ padding: "5px 10px", background: "rgba(255,107,0,0.12)", border: `1px solid rgba(255,107,0,0.4)`, color: accent, borderRadius: 3, cursor: "pointer", fontFamily: mono, fontSize: 14, fontWeight: 700, flexShrink: 0, lineHeight: 1 }}>+</button>
+                </div>
+                {formPatterns.length > 0 && (
+                  <div style={{ display: "flex", flexWrap: "wrap", gap: 4, marginBottom: 4 }}>
+                    {formPatterns.map(p => (
+                      <span key={p} style={{ display: "inline-flex", alignItems: "center", gap: 4, background: "rgba(255,107,0,0.12)", border: `1px solid rgba(255,107,0,0.3)`, borderRadius: 3, padding: "2px 7px", fontSize: 10, color: accent }}>
+                        {p}
+                        <button type="button" onClick={() => {
+                          const next = formPatterns.filter(x => x !== p);
+                          setFormPatterns(next);
+                          setForm(f => ({ ...f, pattern: next.join(", ") }));
+                        }} style={{ background: "none", border: "none", color: txt3, cursor: "pointer", fontSize: 12, lineHeight: 1, padding: 0, marginLeft: 2 }}>×</button>
+                      </span>
+                    ))}
+                  </div>
+                )}
               </div>
               {/* RATIONALE — optional, feeds journal */}
               <div style={{ marginBottom: 5 }}>
@@ -2422,8 +2544,8 @@ ${skillJournal ? `\nSKILL JOURNAL (${username}'s own recorded lessons — refere
                     ))}
                     <div style={{marginTop:10,display:"flex",justifyContent:"space-between",fontSize:11,color:txt3}}>
                       <span>Started at: <strong style={{color:txt}}>{calibration.startingElo.toLocaleString()} ELO</strong></span>
-                      <span style={{color:getConfidence(calibration.tradesAnalyzed)==='Medium'?amb:getConfidence(calibration.tradesAnalyzed)==='High'?grn:txt3}}>
-                        {calibration.confidence} confidence · {calibration.tradesAnalyzed} trades
+                      <span style={{color:getConfidence(closed.length)==='Medium'?amb:getConfidence(closed.length)==='High'?grn:txt3}}>
+                        {calibration.confidence} confidence · {closed.length} trades ({calibration.tradesAnalyzed} calibrated)
                       </span>
                     </div>
                   </div>
@@ -3336,10 +3458,11 @@ ${skillJournal ? `\nSKILL JOURNAL (${username}'s own recorded lessons — refere
               </div>
             </div>
             {(statsData.recentSignals||[]).length>0&&<div style={{background:bg3,borderRadius:7,padding:"10px 12px",marginBottom:10}}>
-              <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
+              <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:4}}>
                 <div style={{fontSize:10,fontWeight:700,color:txt3,textTransform:"uppercase",letterSpacing:"0.08em"}}>📡 Recent Signals</div>
                 <div style={{fontSize:9,color:txt3}}>{statsData.recentSignals.filter(s=>s.confirmed).length} confirmed · {statsData.recentSignals.length} total</div>
               </div>
+              <div style={{fontSize:9,color:txt3,marginBottom:8,fontStyle:"italic"}}>Shows CEO agent signals only. Manual positions are tracked in Statistics.</div>
               <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:4}}>
                 {(statsData.recentSignals||[]).slice(0,16).map((s,i)=>{
                   const outcome = s.hitTarget ? "✅" : s.hitStop ? "🛑" : s.confirmed ? "📌" : "⏳";
@@ -3427,6 +3550,50 @@ ${skillJournal ? `\nSKILL JOURNAL (${username}'s own recorded lessons — refere
           </div>
           {statsForDisplay.badTickers.length>0&&<div style={{fontSize:10,color:red,background:"rgba(248,81,73,0.07)",padding:"5px 10px",borderRadius:4}}>{'⚠️ Avoid (WR < 40%, ≥5 trades): '}{statsForDisplay.badTickers.join(", ")}</div>}
         </div>}
+
+        {/* Agent Weekly Activity */}
+        <div style={{...C.card,marginBottom:12}}>
+          <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:8}}>
+            <div>
+              <span style={{fontSize:11,fontWeight:700,color:txt3,textTransform:"uppercase",letterSpacing:"0.1em"}}>📅 Agent Weekly Activity</span>
+              <div style={{fontSize:9,color:txt3,marginTop:2}}>Summary of all agent signals from the last 7 days</div>
+            </div>
+            <button
+              type="button"
+              onClick={generateAgentWeeklyReport}
+              disabled={weeklyReportLoading}
+              style={{padding:"6px 14px",background:weeklyReportLoading?"rgba(255,107,0,0.06)":"rgba(255,107,0,0.12)",border:`1px solid rgba(255,107,0,0.4)`,color:accent,borderRadius:3,cursor:weeklyReportLoading?"not-allowed":"pointer",fontFamily:mono,fontSize:11,fontWeight:700,opacity:weeklyReportLoading?0.6:1}}>
+              {weeklyReportLoading ? "Sending…" : "Generate Weekly Report ↗"}
+            </button>
+          </div>
+          {agentStats && (()=>{
+            const oneWeekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+            const recentSigs = (agentStats.recentSignals || []).filter(s => {
+              if (!s.receivedAt && !s.date) return true;
+              const d = new Date(s.receivedAt || s.date);
+              return d >= oneWeekAgo;
+            });
+            const resolved = recentSigs.filter(s => s.hitTarget || s.hitStop);
+            const wins = resolved.filter(s => s.hitTarget).length;
+            const wr = resolved.length > 0 ? Math.round(wins / resolved.length * 100) : null;
+            return (
+              <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:8}}>
+                {[
+                  {label:"Signals (7d)", val: recentSigs.length || "—"},
+                  {label:"CEO Approved", val: recentSigs.filter(s=>s.confirmed).length || "—"},
+                  {label:"Resolved", val: resolved.length || "—"},
+                  {label:"Signal WR", val: wr !== null ? wr+"%" : "—", col: wr !== null ? (wr>=55?grn:wr>=45?amb:red) : txt3},
+                ].map(({label,val,col})=>(
+                  <div key={label} style={{background:bg3,borderRadius:5,padding:"7px 10px",border:`1px solid ${bdr}`}}>
+                    <div style={{fontSize:8,color:txt3,textTransform:"uppercase",letterSpacing:"0.08em",marginBottom:3}}>{label}</div>
+                    <div style={{fontSize:15,fontWeight:700,color:col||txt}}>{val}</div>
+                  </div>
+                ))}
+              </div>
+            );
+          })()}
+          {!agentStats && <div style={{fontSize:10,color:txt3,padding:"8px 0"}}>Load agent stats to see weekly summary (refresh Analytics tab).</div>}
+        </div>
 
         {/* CEO stream (while running) */}
         {agentsRunning&&ceoStream&&<div style={{...C.card,marginBottom:12}}>
@@ -3699,8 +3866,8 @@ ${skillJournal ? `\nSKILL JOURNAL (${username}'s own recorded lessons — refere
       posting={tweetPosting}
     />}
       {/* ── SERVER TAB ── */}
-      {tab === "server" && <div style={{...C.page, gap:0}}>
-        <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:10,padding:"0 2px"}}>
+      {tab === "server" && <div style={{...C.page, gap:0, display:"flex", flexDirection:"column"}}>
+        <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:10,padding:"0 2px",flexShrink:0}}>
           <div style={{display:"flex",alignItems:"center",gap:8}}>
             <span style={{width:8,height:8,borderRadius:"50%",background:grn,boxShadow:`0 0 6px ${grn}`,display:"inline-block"}}/>
             <span style={{fontSize:11,fontWeight:700,color:txt2,textTransform:"uppercase",letterSpacing:"0.1em",fontFamily:display}}>Backend Server Logs</span>
