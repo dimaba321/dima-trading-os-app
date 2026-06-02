@@ -83,6 +83,43 @@ const RANKS = [
 const MINER_TICKERS = new Set(["IREN","CIFR","MARA","CLSK","RIOT","BTBT","HUT"]);
 
 // ── Trade patterns (mandatory on entry — feeds stats agent pattern matrix) ───
+const PATTERN_DESCRIPTIONS = {
+  // 150 SMA System
+  "150 SMA Bounce":           "Price dips to the 150-day SMA (rising) and bounces. The SMA acts as dynamic support. Best when volume confirms the bounce. Core setup of the system.",
+  "Approaching 150 SMA":      "Price is within 3-5% below the 150 SMA (which must be rising). Watching for a touch and bounce. Entry is anticipatory — wait for confirmation candle.",
+  "Above 150 SMA Trend":      "Price is trending above the rising 150 SMA, pulling back slightly. Buying the dip within an uptrend. Not a bounce — more of a continuation.",
+  "150 SMA + Volume Spike":   "150 SMA bounce confirmed by a significant volume surge. Institutional accumulation signal. Higher confidence than a regular bounce.",
+  "150 SMA + Sector Strength":"150 SMA bounce while the sector ETF is also above its 150 SMA. Sector tailwind increases probability.",
+  // Price Action
+  "Trendline Bounce":         "Price bounces off a well-defined upward trendline. The trendline must connect at least 2-3 prior lows. Volume should be above average on the bounce.",
+  "Trendline Break":          "Price breaks above a downward trendline with volume. Signals trend reversal. Often leads to a fast move up.",
+  "Support Level Test":       "Price tests a known horizontal support zone (prior highs/lows, round numbers). Buying at support with a tight stop just below.",
+  "Resistance Breakout":      "Price closes above a key resistance level on above-average volume. Resistance flips to support. Classic momentum entry.",
+  "Retest Bounce":            "After breaking a level, price pulls back to retest it (now as support) and bounces. More conservative entry than the initial breakout.",
+  "Flag / Continuation":      "After a strong move up (flagpole), price consolidates in a tight range (flag). Breakout from the flag continues the original trend.",
+  "Triangle Breakout":        "Price coils into a symmetrical or ascending triangle. Breakout from the apex, often with volume expansion.",
+  "Double Bottom":            "Price forms two similar lows, with a bounce in between. Second low holds — signals reversal. Entry on break of the middle high (neckline).",
+  "Higher Low":               "Series of higher lows forming — sign of accumulation. Buying as price makes another higher low vs the previous one.",
+  // Confluence
+  "Triple Confluence":        "Three or more signals align simultaneously: e.g., 150 SMA bounce + trendline support + RSI oversold. Highest conviction setups.",
+  "RSI Oversold + SMA":       "RSI below 35 while price is at or near the 150 SMA. Oversold momentum + structural support. Good risk/reward.",
+  "SMA + MACD Cross":         "150 SMA bounce combined with MACD crossing above signal line. Technical momentum confirms the bounce.",
+  "BB Squeeze + SMA":         "Bollinger Band squeeze (low volatility) at the 150 SMA. Breakout from the squeeze often explosive.",
+  // Event / Fundamental
+  "Earnings Recovery":        "Stock dropped on earnings then recovers above 150 SMA. Post-earnings dust settled — buying the recovery, not the dip.",
+  "Pre-Earnings Entry":       "Entering before earnings based on technical setup. HIGH RISK — must plan to exit before earnings if uncertain.",
+  "Post-Earnings Dip":        "Overreaction dip after earnings with good fundamentals. Buying the gap down if price is still above 150 SMA or key support.",
+  "BTC Correlation Play":     "For BTC miners (MARA, RIOT, IREN etc). Trade is based on BTC price action above $79.5K rule, not independent technicals.",
+  "Sector Rotation":          "Money rotating into a lagging sector. Buying sector leaders as money flows in. More of a macro/fundamental trade.",
+  "News Catalyst":            "Unexpected positive news (contract, approval, upgrade). Entering on the catalyst-driven breakout. Must verify no earnings risk.",
+  "IPO / Speculative":        "High-risk trade in a new or speculative stock. Small size. Acknowledge this is speculative — no strong SMA history.",
+  // Risk flags
+  "Emotional Buy":            "⚠️ EMOTIONAL — Bought based on excitement or impulse, not a clear setup. Automatically flags as emotional trade (-150 ELO penalty).",
+  "FOMO Entry":               "⚠️ EMOTIONAL — Fear Of Missing Out. Chasing a stock that already moved. No proper entry point. (-150 ELO penalty).",
+  "Averaging Down":           "⚠️ EMOTIONAL — Adding to a losing position. Usually hoping instead of following rules. (-150 ELO penalty).",
+  "No Clear Reason":          "⚠️ EMOTIONAL — No identifiable setup or rationale. Honest self-tagging. (-150 ELO penalty).",
+};
+
 const TRADE_PATTERNS = [
   // 150 SMA System
   "150 SMA Bounce",
@@ -471,6 +508,7 @@ export default function DimaTradingOS() {
   const [cfEmotional, setCfEmotional] = useState(false);
   // Skill journal
   const [skillJournal, setSkillJournal] = useState('');
+  const [showPatternHelp, setShowPatternHelp] = useState(false);
   // API key management
   const [serverConfig, setServerConfig]   = useState(null);
   const [configInputs, setConfigInputs]   = useState({ ANTHROPIC_API_KEY:'', TELEGRAM_BOT_TOKEN:'', TELEGRAM_CHAT_ID:'', NEWS_API_KEY:'', FINNHUB_API_KEY:'' });
@@ -2337,7 +2375,13 @@ ${skillJournal ? `\nSKILL JOURNAL (${username}'s own recorded lessons — refere
               </div>
               {/* PATTERN — mandatory, supports multiple */}
               <div style={{ marginBottom: 5 }}>
-                <label style={{ ...C.fl, color: !form.pattern ? red : txt3 }}>Pattern ★ required</label>
+                <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:3 }}>
+                  <label style={{ ...C.fl, marginBottom:0, color: !form.pattern ? red : txt3 }}>Pattern ★ required</label>
+                  <button type="button" onClick={()=>setShowPatternHelp(true)}
+                    style={{ fontSize:9, padding:"1px 7px", background:"rgba(88,166,255,0.1)", border:`1px solid rgba(88,166,255,0.3)`, color:"#58a6ff", borderRadius:3, cursor:"pointer", fontFamily:mono, letterSpacing:"0.05em" }}>
+                    ? What do these mean
+                  </button>
+                </div>
                 <div style={{ display: "flex", gap: 5, alignItems: "center", marginBottom: 4 }}>
                   <select
                     style={{ ...C.fi, marginBottom: 0, flex: 1, color: formPatternSel ? txt : txt3, borderColor: !form.pattern ? "rgba(248,81,73,0.5)" : bdr2 }}
@@ -3892,6 +3936,37 @@ ${skillJournal ? `\nSKILL JOURNAL (${username}'s own recorded lessons — refere
           <div ref={serverLogEndRef}/>
         </div>
       </div>}
+
+    {/* ── PATTERN HELP MODAL ── */}
+    {showPatternHelp && (
+      <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.75)",zIndex:9999,display:"flex",alignItems:"center",justifyContent:"center",padding:20}}
+        onClick={()=>setShowPatternHelp(false)}>
+        <div style={{background:bg2,border:`1px solid ${bdr2}`,borderRadius:10,width:"min(680px,95vw)",maxHeight:"80vh",display:"flex",flexDirection:"column"}}
+          onClick={e=>e.stopPropagation()}>
+          {/* Header */}
+          <div style={{padding:"14px 18px",borderBottom:`1px solid ${bdr}`,display:"flex",alignItems:"center",justifyContent:"space-between",flexShrink:0}}>
+            <div>
+              <div style={{fontSize:13,fontWeight:700,color:txt,fontFamily:display}}>Pattern Reference Guide</div>
+              <div style={{fontSize:10,color:txt3,marginTop:2}}>What each pattern means and when to use it</div>
+            </div>
+            <button type="button" onClick={()=>setShowPatternHelp(false)}
+              style={{background:"none",border:`1px solid ${bdr}`,color:txt3,borderRadius:4,padding:"3px 10px",cursor:"pointer",fontFamily:mono,fontSize:11}}>Close</button>
+          </div>
+          {/* Pattern list */}
+          <div style={{overflowY:"auto",padding:"12px 18px"}}>
+            {Object.entries(PATTERN_DESCRIPTIONS).map(([name, desc]) => {
+              const isEmotional = name.startsWith('Emotional') || name.startsWith('FOMO') || name.startsWith('Averaging') || name.startsWith('No Clear');
+              return (
+                <div key={name} style={{marginBottom:10,paddingBottom:10,borderBottom:`1px solid ${bdr}`}}>
+                  <div style={{fontSize:11,fontWeight:700,color:isEmotional?red:accent,marginBottom:3,fontFamily:mono}}>{name}</div>
+                  <div style={{fontSize:10,color:isEmotional?txt2:txt2,lineHeight:1.6}}>{desc}</div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      </div>
+    )}
 
     </div>{/* end content wrapper */}
     </div>
