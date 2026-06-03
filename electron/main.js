@@ -135,11 +135,14 @@ function startBackend() {
     }
   }
 
-  backendProcess = spawn('node', [BACKEND_PATH], {
+  // Use Electron's own bundled Node.js (process.execPath) so the app works
+  // on machines that don't have Node.js installed (most end users).
+  // ELECTRON_RUN_AS_NODE=1 makes the Electron binary behave like node.exe.
+  backendProcess = spawn(process.execPath, [BACKEND_PATH], {
     cwd:         path.dirname(BACKEND_PATH),
-    env:         { ...process.env, PORT: String(BACKEND_PORT), DATA_DIR, ENV_FILE },
+    env:         { ...process.env, PORT: String(BACKEND_PORT), DATA_DIR, ENV_FILE, ELECTRON_RUN_AS_NODE: '1' },
     stdio:       ['ignore', 'pipe', 'pipe'],
-    windowsHide: true,   // no popup — logs available via Server Logs window in app
+    windowsHide: true,
   });
 
   // Force UTF-8 so emoji in log messages don't appear as garbage on Windows
