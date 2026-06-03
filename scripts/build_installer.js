@@ -46,6 +46,12 @@ pkg.version = newVer;
 fs.writeFileSync(pkgFilePath, JSON.stringify(pkg, null, 2) + '\n', 'utf8');
 console.log(`[0] Version bumped: ${oldVer} → ${newVer}`);
 
+// Write personal build marker (removes customer flag if present)
+if (!isClean) {
+  const btFile = path.join(ROOT, 'electron', 'build-type.json');
+  fs.writeFileSync(btFile, JSON.stringify({ type: 'personal', version: newVer }, null, 2));
+}
+
 // ── Step 0a: Generate installer wizard BMP assets ─────────────────────────────
 console.log('[0/5] Generating installer wizard graphics...');
 execSync('node scripts/generate-installer-assets.js', { cwd: ROOT, stdio: 'inherit' });
@@ -86,6 +92,9 @@ const srcFile = path.join(ROOT, 'src', 'DimaTradingOS.jsx');
 let srcBackup  = null;
 
 if (isClean) {
+  // Write build-type.json so main.js can wipe customer AppData on first launch
+  fs.writeFileSync(path.join(ROOT, 'electron', 'build-type.json'),
+    JSON.stringify({ type: 'customer', version: newVer }, null, 2));
   console.log('[2/5] Applying clean patch (removing personal data)...');
   srcBackup = fs.readFileSync(srcFile, 'utf8');
   let patched = srcBackup;

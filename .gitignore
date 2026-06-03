@@ -4,6 +4,7 @@ release/
 CUSTOMER_BUILD/
 .electron-data/
 *.log
+electron/build-type.json
 
 # Keep public/ranks badges but ignore large source PNGs if needed
 # public/ranks/

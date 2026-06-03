@@ -375,12 +375,7 @@ const DATA_VERSION = "2026-05-30-v5";  // force reload from SQLite — fixed sto
       localStorage.removeItem("dima_account_value");
       localStorage.setItem("dima_data_ver", DATA_VERSION);
       console.log('[data] Reset to defaults v' + DATA_VERSION);
-      // For customer builds: also wipe backend DB of any leftover personal data
-      if (DATA_VERSION.startsWith('customer-')) {
-        fetch('http://localhost:3000/api/trades/closed', { method:'PUT', headers:{'Content-Type':'application/json'}, body:'[]' }).catch(()=>{});
-        fetch('http://localhost:3000/api/trades/positions', { method:'PUT', headers:{'Content-Type':'application/json'}, body:'[]' }).catch(()=>{});
-        console.log('[data] Customer build — wiped backend DB of personal data');
-      }
+      // Customer data wipe is handled in main.js before backend starts (no race condition)
     }
   } catch {}
 })();

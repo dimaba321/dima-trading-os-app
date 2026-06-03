@@ -89,6 +89,31 @@ function startBackend() {
   const ENV_FILE = path.join(app.getPath('appData'), 'Dima Trading OS', '.env');
   fs.mkdirSync(DATA_DIR, { recursive: true });
 
+  // ── Customer build: wipe AppData personal data BEFORE backend starts ────────
+  // Reads build-type.json written by build_installer.js for customer builds.
+  // This runs synchronously so AppData is clean before the backend reads it.
+  const buildTypeFile = path.join(__dirname, 'build-type.json');
+  if (fs.existsSync(buildTypeFile)) {
+    try {
+      const buildType = JSON.parse(fs.readFileSync(buildTypeFile, 'utf8'));
+      if (buildType.type === 'customer') {
+        const cleanMarker = path.join(DATA_DIR, '_customer_clean_' + buildType.version);
+        if (!fs.existsSync(cleanMarker)) {
+          // Wipe all personal data files synchronously before backend starts
+          const personalFiles = ['trades.db','positions.json','closed_trades.json',
+            'settings.json','portfolio.json','stats.json','capital.json'];
+          personalFiles.forEach(f => {
+            try { fs.unlinkSync(path.join(DATA_DIR, f)); } catch {}
+          });
+          // Also clear the migration marker so fresh migration can run
+          try { fs.unlinkSync(path.join(DATA_DIR, '_migrated')); } catch {}
+          fs.writeFileSync(cleanMarker, new Date().toISOString());
+          console.log('[main] Customer build — wiped AppData personal data for version', buildType.version);
+        }
+      }
+    } catch (e) { console.warn('[main] build-type check failed:', e.message); }
+  }
+
   // ── One-time migration of old data from install dir to AppData ─────────────
   const OLD_DATA = path.join(path.dirname(BACKEND_PATH), 'data');
   if (fs.existsSync(OLD_DATA) && !fs.existsSync(path.join(DATA_DIR, '_migrated'))) {
